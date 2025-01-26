@@ -87,7 +87,10 @@ export function PostCard({ post }: PostCardProps) {
           <div className="text-base mb-3">{postRecord.text}</div>
 
           <div className="text-sm text-zinc-400">
-            submitted {formatDistanceToNow(new Date(post.post.indexedAt))} ago
+            submitted{" "}
+            {formatDistanceToNow(new Date(post.post.indexedAt), {
+              addSuffix: true,
+            })}{" "}
             by <span className="text-zinc-300">{post.post.author.handle}</span>
           </div>
 
