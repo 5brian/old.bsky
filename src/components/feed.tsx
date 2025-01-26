@@ -29,6 +29,7 @@ export function Feed() {
 
       if (pages.has(pageNumber)) {
         setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
@@ -52,6 +53,7 @@ export function Feed() {
             return newPages;
           });
           setCurrentPage(pageNumber);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
       } catch (error) {
         console.error("Failed to load feed:", error);
