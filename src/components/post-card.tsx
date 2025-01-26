@@ -14,7 +14,7 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const { agent } = useAuth();
-  const viewer = post.viewer as AppBskyFeedDefs.ViewerState | undefined;
+  const viewer = post.post.viewer as AppBskyFeedDefs.ViewerState | undefined;
   const [isLiked, setIsLiked] = useState(viewer?.like !== undefined);
   const [isReposted, setIsReposted] = useState(viewer?.repost !== undefined);
   const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
@@ -76,18 +76,14 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="font-medium">
-              {post.post.author.displayName || post.post.author.handle}
-            </span>
-            <span className="text-zinc-400 text-sm">
-              {formatDistanceToNow(new Date(post.post.indexedAt))} ago
-            </span>
+          <div className="text-base mb-3">{postRecord.text}</div>
+
+          <div className="text-sm text-zinc-400">
+            submitted {formatDistanceToNow(new Date(post.post.indexedAt))} ago
+            by <span className="text-zinc-300">{post.post.author.handle}</span>
           </div>
 
-          <div className="text-sm mb-3">{postRecord.text}</div>
-
-          <div className="flex space-x-4 text-zinc-400 text-sm">
+          <div className="flex space-x-4 text-zinc-400 text-sm mt-2">
             <Button
               variant="ghost"
               size="sm"
