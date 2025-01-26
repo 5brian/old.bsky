@@ -23,6 +23,29 @@ export function Feed() {
 
   const currentPageData = pages.get(currentPage);
 
+  const getParentPost = async (post: AppBskyFeedDefs.FeedViewPost) => {
+    if (!agent) return null;
+
+    try {
+      const reply = post.post.record.reply;
+      if (!reply?.parent.uri) return null;
+
+      const response = await agent.api.app.bsky.feed.getPosts({
+        uris: [reply.parent.uri],
+      });
+
+      if (response.success && response.data.posts.length > 0) {
+        return {
+          post: response.data.posts[0],
+          reason: post.reason,
+        } as AppBskyFeedDefs.FeedViewPost;
+      }
+    } catch (error) {
+      console.error("Failed to fetch parent post:", error);
+    }
+    return null;
+  };
+
   const loadPage = useCallback(
     async (pageNumber: number) => {
       if (!agent || isLoading) return;
@@ -39,15 +62,37 @@ export function Feed() {
       try {
         const prevPageData = pages.get(pageNumber - 1);
         const response = await agent.getTimeline({
-          limit: POSTS_PER_PAGE,
+          limit: POSTS_PER_PAGE * 2,
           cursor: pageNumber === 1 ? undefined : prevPageData?.cursor,
         });
 
         if (response.success) {
+          const processedPosts = await Promise.all(
+            response.data.feed.map(async (post) => {
+              // If it's a reply, get the parent post instead
+              if (post.post.record.reply) {
+                const parentPost = await getParentPost(post);
+                return parentPost;
+              }
+              return post;
+            }),
+          );
+
+          // Filter out nulls and duplicates based on post URI
+          const uniquePosts = processedPosts
+            .filter(
+              (post): post is AppBskyFeedDefs.FeedViewPost => post !== null,
+            )
+            .filter(
+              (post, index, self) =>
+                index === self.findIndex((p) => p.post.uri === post.post.uri),
+            )
+            .slice(0, POSTS_PER_PAGE);
+
           setPages((prevPages) => {
             const newPages = new Map(prevPages);
             newPages.set(pageNumber, {
-              posts: response.data.feed,
+              posts: uniquePosts,
               cursor: response.data.cursor,
             });
             return newPages;
