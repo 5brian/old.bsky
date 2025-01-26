@@ -8,6 +8,8 @@ import { useAuth } from "./auth-provider";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 
+const BSKY_WEB_URL = "https://bsky.app";
+
 interface PostCardProps {
   post: AppBskyFeedDefs.FeedViewPost;
 }
@@ -52,6 +54,12 @@ export function PostCard({ post }: PostCardProps) {
     } catch (error) {
       console.error("Failed to repost/unrepost:", error);
     }
+  };
+
+  const getPostUrl = () => {
+    const handle = post.post.author.handle;
+    const rkey = post.post.uri.split("/").pop();
+    return `${BSKY_WEB_URL}/profile/${handle}/post/${rkey}`;
   };
 
   const postRecord = post.post.record as AppBskyFeedPost.Record;
@@ -100,6 +108,14 @@ export function PostCard({ post }: PostCardProps) {
               onClick={handleRepost}
             >
               {repostCount} {repostCount === 1 ? "repost" : "reposts"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 text-sm hover:text-zinc-300 hover:underline"
+              onClick={() => window.open(getPostUrl(), "_blank")}
+            >
+              source
             </Button>
           </div>
         </div>
