@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "./auth-provider";
-import type { AppBskyFeedDefs } from "@atproto/api";
+import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
 import { PostCard } from "./post-card";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,14 @@ type PageData = {
   cursor: string | undefined;
 };
 
+interface ReplyRecord {
+  reply?: {
+    parent?: {
+      uri?: string;
+    };
+  };
+}
+
 export function Feed() {
   const { agent, isAuthenticated } = useAuth();
   const [pages, setPages] = useState<Map<number, PageData>>(new Map());
@@ -23,27 +31,52 @@ export function Feed() {
 
   const currentPageData = pages.get(currentPage);
 
-  const getParentPost = async (post: AppBskyFeedDefs.FeedViewPost) => {
+  const isReplyRecord = (record: unknown): record is AppBskyFeedPost.Record => {
+    if (!record || typeof record !== "object") return false;
+
+    const replyRecord = record as ReplyRecord;
+    return (
+      "reply" in record && typeof replyRecord.reply?.parent?.uri === "string"
+    );
+  };
+
+  const getTopLevelPost = async (
+    post: AppBskyFeedDefs.FeedViewPost,
+  ): Promise<AppBskyFeedDefs.FeedViewPost | null> => {
     if (!agent) return null;
 
     try {
-      const reply = post.post.record.reply;
-      if (!reply?.parent.uri) return null;
+      let currentPost = post;
+      let record = currentPost.post.record as AppBskyFeedPost.Record;
 
-      const response = await agent.api.app.bsky.feed.getPosts({
-        uris: [reply.parent.uri],
-      });
+      while (isReplyRecord(record) && record.reply?.parent?.uri) {
+        const response = await agent.api.app.bsky.feed.getPosts({
+          uris: [record.reply.parent.uri],
+        });
 
-      if (response.success && response.data.posts.length > 0) {
-        return {
+        if (!response.success || response.data.posts.length === 0) {
+          return null;
+        }
+
+        const parentPost = {
           post: response.data.posts[0],
           reason: post.reason,
         } as AppBskyFeedDefs.FeedViewPost;
+
+        const parentRecord = parentPost.post.record as AppBskyFeedPost.Record;
+        if (!isReplyRecord(parentRecord)) {
+          return parentPost;
+        }
+
+        currentPost = parentPost;
+        record = parentRecord;
       }
+
+      return currentPost;
     } catch (error) {
-      console.error("Failed to fetch parent post:", error);
+      console.error("Failed to fetch top-level post:", error);
+      return null;
     }
-    return null;
   };
 
   const loadPage = useCallback(
@@ -69,10 +102,11 @@ export function Feed() {
         if (response.success) {
           const processedPosts = await Promise.all(
             response.data.feed.map(async (post) => {
-              // If it's a reply, get the parent post instead
-              if (post.post.record.reply) {
-                const parentPost = await getParentPost(post);
-                return parentPost;
+              // If it's a reply, get the top-level post instead
+              const record = post.post.record as AppBskyFeedPost.Record;
+              if (isReplyRecord(record)) {
+                const topLevelPost = await getTopLevelPost(post);
+                return topLevelPost;
               }
               return post;
             }),
