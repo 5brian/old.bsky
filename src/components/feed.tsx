@@ -56,8 +56,8 @@ export function Feed() {
 
   return (
     <div className="space-y-4">
-      {posts.map((post) => (
-        <PostCard key={post.post.cid} post={post} />
+      {posts.map((post, index) => (
+        <PostCard key={`${post.post.cid}-${index}`} post={post} />
       ))}
       <div className="flex justify-center p-4">
         <Button onClick={() => loadFeed()} disabled={!cursor}>
