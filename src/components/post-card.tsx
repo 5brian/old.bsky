@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 
 const BSKY_WEB_URL = "https://bsky.app";
 
@@ -88,7 +88,7 @@ export function PostCard({ post }: PostCardProps) {
 
           <div className="text-sm text-zinc-400">
             submitted{" "}
-            {formatDistanceToNow(new Date(post.post.indexedAt), {
+            {formatDistanceToNowStrict(new Date(post.post.indexedAt), {
               addSuffix: true,
             })}{" "}
             by <span className="text-zinc-300">{post.post.author.handle}</span>
