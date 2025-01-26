@@ -3,13 +3,7 @@
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import {
-  ArrowUp,
-  ArrowDown,
-  MessageSquare,
-  Repeat2,
-  Heart,
-} from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -61,12 +55,18 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const postRecord = post.post.record as AppBskyFeedPost.Record;
+  const commentCount = post.post.replyCount || 0;
 
   return (
     <Card className="bg-zinc-800 border-zinc-700">
       <div className="flex">
         <div className="flex flex-col items-center p-2 text-zinc-400">
-          <Button variant="ghost" size="sm" className="p-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`p-0 ${isLiked ? "text-orange-500" : ""}`}
+            onClick={handleLike}
+          >
             <ArrowUp className="h-4 w-4" />
           </Button>
           <span className="text-xs font-medium">{likeCount}</span>
@@ -87,36 +87,23 @@ export function PostCard({ post }: PostCardProps) {
 
           <div className="text-sm mb-3">{postRecord.text}</div>
 
-          <div className="flex space-x-4 text-zinc-400">
+          <div className="flex space-x-4 text-zinc-400 text-sm">
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center space-x-1"
-              onClick={handleLike}
+              className="p-0 text-sm hover:text-zinc-300 hover:underline"
             >
-              <Heart
-                className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-              />
-              <span>{likeCount}</span>
+              {commentCount} {commentCount === 1 ? "comment" : "comments"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center space-x-1"
+              className={`p-0 text-sm hover:text-zinc-300 hover:underline ${
+                isReposted ? "text-green-500" : ""
+              }`}
               onClick={handleRepost}
             >
-              <Repeat2
-                className={`h-4 w-4 ${isReposted ? "text-green-500" : ""}`}
-              />
-              <span>{repostCount}</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center space-x-1"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>{post.post.replyCount || 0}</span>
+              {repostCount} {repostCount === 1 ? "repost" : "reposts"}
             </Button>
           </div>
         </div>
