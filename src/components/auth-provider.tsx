@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import {
   type AtpSessionData,
   type AtpSessionEvent,
@@ -29,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [agent, setAgent] = useState<AtpAgent | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const createAgent = () => {
+  const createAgent = useCallback(() => {
     return new AtpAgent({
       service: "https://bsky.social",
       persistSession: (evt: AtpSessionEvent, sess?: AtpSessionData) => {
@@ -42,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
     });
-  };
+  }, []);
 
   useEffect(() => {
     const savedSession = localStorage.getItem("atp-session");
