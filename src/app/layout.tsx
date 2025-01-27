@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "old.bsky",
   description: "old.reddit themed bluesky client",
+  icons: {
+    icon: "/icons/star.svg",
+  },
 };
 
 export default function RootLayout({
