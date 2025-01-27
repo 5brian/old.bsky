@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useLayoutEffect } from "react";
 import { useAuth } from "./auth-provider";
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
 import { PostCard } from "./post-card";
@@ -14,13 +14,13 @@ type PageData = {
   cursor: string | undefined;
 };
 
-interface ReplyRecord {
+type ReplyRecord = {
   reply?: {
     parent?: {
       uri?: string;
     };
   };
-}
+};
 
 export function Feed() {
   const { agent, isAuthenticated } = useAuth();
@@ -33,7 +33,6 @@ export function Feed() {
 
   const isReplyRecord = (record: unknown): record is AppBskyFeedPost.Record => {
     if (!record || typeof record !== "object") return false;
-
     const replyRecord = record as ReplyRecord;
     return (
       "reply" in record && typeof replyRecord.reply?.parent?.uri === "string"
@@ -88,7 +87,6 @@ export function Feed() {
 
       if (pages.has(pageNumber)) {
         setCurrentPage(pageNumber);
-        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
@@ -105,7 +103,6 @@ export function Feed() {
         if (response.success) {
           const processedPosts = await Promise.all(
             response.data.feed.map(async (post) => {
-              // If it's a reply, get the top-level post instead
               const record = post.post.record as AppBskyFeedPost.Record;
               if (isReplyRecord(record)) {
                 const topLevelPost = await getTopLevelPost(post);
@@ -115,7 +112,6 @@ export function Feed() {
             }),
           );
 
-          // Filter out nulls and duplicates based on post URI
           const uniquePosts = processedPosts
             .filter(
               (post): post is AppBskyFeedDefs.FeedViewPost => post !== null,
@@ -135,7 +131,6 @@ export function Feed() {
             return newPages;
           });
           setCurrentPage(pageNumber);
-          window.scrollTo({ top: 0, behavior: "smooth" });
         }
       } catch (error) {
         console.error("Failed to load feed:", error);
@@ -146,6 +141,10 @@ export function Feed() {
     },
     [agent, isLoading, pages, getTopLevelPost],
   );
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   useEffect(() => {
     if (agent && !pages.has(1)) {
@@ -183,7 +182,7 @@ export function Feed() {
         <>
           <div className="space-y-4">
             {currentPageData?.posts.map((post) => (
-              <PostCard key={post.post.cid} post={post} />
+              <PostCard key={post.post.uri} post={post} />
             ))}
           </div>
 
