@@ -40,44 +40,47 @@ export function Feed() {
     );
   };
 
-  const getTopLevelPost = async (
-    post: AppBskyFeedDefs.FeedViewPost,
-  ): Promise<AppBskyFeedDefs.FeedViewPost | null> => {
-    if (!agent) return null;
+  const getTopLevelPost = useCallback(
+    async (
+      post: AppBskyFeedDefs.FeedViewPost,
+    ): Promise<AppBskyFeedDefs.FeedViewPost | null> => {
+      if (!agent) return null;
 
-    try {
-      let currentPost = post;
-      let record = currentPost.post.record as AppBskyFeedPost.Record;
+      try {
+        let currentPost = post;
+        let record = currentPost.post.record as AppBskyFeedPost.Record;
 
-      while (isReplyRecord(record) && record.reply?.parent?.uri) {
-        const response = await agent.api.app.bsky.feed.getPosts({
-          uris: [record.reply.parent.uri],
-        });
+        while (isReplyRecord(record) && record.reply?.parent?.uri) {
+          const response = await agent.api.app.bsky.feed.getPosts({
+            uris: [record.reply.parent.uri],
+          });
 
-        if (!response.success || response.data.posts.length === 0) {
-          return null;
+          if (!response.success || response.data.posts.length === 0) {
+            return null;
+          }
+
+          const parentPost = {
+            post: response.data.posts[0],
+            reason: post.reason,
+          } as AppBskyFeedDefs.FeedViewPost;
+
+          const parentRecord = parentPost.post.record as AppBskyFeedPost.Record;
+          if (!isReplyRecord(parentRecord)) {
+            return parentPost;
+          }
+
+          currentPost = parentPost;
+          record = parentRecord;
         }
 
-        const parentPost = {
-          post: response.data.posts[0],
-          reason: post.reason,
-        } as AppBskyFeedDefs.FeedViewPost;
-
-        const parentRecord = parentPost.post.record as AppBskyFeedPost.Record;
-        if (!isReplyRecord(parentRecord)) {
-          return parentPost;
-        }
-
-        currentPost = parentPost;
-        record = parentRecord;
+        return currentPost;
+      } catch (error) {
+        console.error("Failed to fetch top-level post:", error);
+        return null;
       }
-
-      return currentPost;
-    } catch (error) {
-      console.error("Failed to fetch top-level post:", error);
-      return null;
-    }
-  };
+    },
+    [agent],
+  );
 
   const loadPage = useCallback(
     async (pageNumber: number) => {
@@ -141,14 +144,14 @@ export function Feed() {
         setIsLoading(false);
       }
     },
-    [agent, isLoading],
+    [agent, isLoading, pages, getTopLevelPost],
   );
 
   useEffect(() => {
     if (agent && !pages.has(1)) {
       loadPage(1);
     }
-  }, [agent, loadPage]);
+  }, [agent, loadPage, pages]);
 
   if (!isAuthenticated) {
     return (
