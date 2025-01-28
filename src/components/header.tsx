@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "./auth-provider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,34 @@ import {
 import { Label } from "./ui/label";
 
 export function Header() {
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, login, logout, agent } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [handle, setHandle] = useState("");
+
+  useEffect(() => {
+    const fetchHandle = async () => {
+      if (agent?.session?.did) {
+        try {
+          const profile = await agent.getProfile({
+            actor: agent.session.did,
+          });
+          if (profile.success) {
+            setHandle(profile.data.handle);
+          }
+        } catch (error) {
+          console.error("Failed to fetch profile:", error);
+        }
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchHandle();
+    } else {
+      setHandle("");
+    }
+  }, [agent, isAuthenticated]);
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -63,7 +87,7 @@ export function Header() {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">Account</Button>
+                <Button variant="outline">{handle || "Loading..."}</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
