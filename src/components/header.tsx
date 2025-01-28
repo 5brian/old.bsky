@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "./auth-provider";
@@ -18,6 +19,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
+import { Menu } from "lucide-react";
 
 export function Header() {
   const { isAuthenticated, login, logout, agent } = useAuth();
@@ -59,6 +61,12 @@ export function Header() {
     setIsLoading(false);
   };
 
+  const openProfile = () => {
+    if (handle) {
+      window.open(`https://bsky.app/profile/${handle}`, "_blank");
+    }
+  };
+
   return (
     <header className="border-b border-zinc-800 bg-zinc-900 px-4 py-2">
       <div className="flex items-center justify-between">
@@ -85,47 +93,114 @@ export function Header() {
           />
 
           {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">{handle || "Loading..."}</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">{handle || "Loading..."}</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={openProfile}>
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://github.com/5brian/old.bsky",
+                        "_blank",
+                      )
+                    }
+                  >
+                    Source Code
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://github.com/5brian/old.bsky/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen",
+                        "_blank",
+                      )
+                    }
+                  >
+                    Issues
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>Login</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Login to Bluesky</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="identifier">Handle or Email</Label>
-                    <Input
-                      id="identifier"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                    />
+            <>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>Login</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Login to Bluesky</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="identifier">Handle or Email</Label>
+                      <Input
+                        id="identifier"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleLogin} disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
-                </Button>
-              </DialogContent>
-            </Dialog>
+                  <Button onClick={handleLogin} disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Login"}
+                  </Button>
+                </DialogContent>
+              </Dialog>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://github.com/5brian/old.bsky",
+                        "_blank",
+                      )
+                    }
+                  >
+                    Source Code
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      window.open(
+                        "https://github.com/5brian/old.bsky/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen",
+                        "_blank",
+                      )
+                    }
+                  >
+                    Issues
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
         </div>
       </div>
