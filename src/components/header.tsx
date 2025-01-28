@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
-import { Menu } from "lucide-react";
+import { Menu, Code, CircleDot, LogOut, User } from "lucide-react";
 
 export function Header() {
   const { isAuthenticated, login, logout, agent } = useAuth();
@@ -100,9 +100,13 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={openProfile}>
+                    <User className="mr-2 h-4 w-4" />
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -121,7 +125,8 @@ export function Header() {
                       )
                     }
                   >
-                    Source Code
+                    <Code className="mr-2 h-4 w-4" />
+                    Code
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>
@@ -131,6 +136,7 @@ export function Header() {
                       )
                     }
                   >
+                    <CircleDot className="mr-2 h-4 w-4" />
                     Issues
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -186,7 +192,8 @@ export function Header() {
                       )
                     }
                   >
-                    Source Code
+                    <Code className="mr-2 h-4 w-4" />
+                    Code
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>
@@ -196,6 +203,7 @@ export function Header() {
                       )
                     }
                   >
+                    <CircleDot className="mr-2 h-4 w-4" />
                     Issues
                   </DropdownMenuItem>
                 </DropdownMenuContent>
