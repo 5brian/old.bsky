@@ -62,6 +62,10 @@ export function PostCard({ post }: PostCardProps) {
     return `${BSKY_WEB_URL}/profile/${handle}/post/${rkey}`;
   };
 
+  const getProfileUrl = (handle: string) => {
+    return `${BSKY_WEB_URL}/profile/${handle}`;
+  };
+
   const postRecord = post.post.record as AppBskyFeedPost.Record;
   const commentCount = post.post.replyCount || 0;
 
@@ -91,7 +95,16 @@ export function PostCard({ post }: PostCardProps) {
             {formatDistanceToNowStrict(new Date(post.post.indexedAt), {
               addSuffix: true,
             })}{" "}
-            by <span className="text-zinc-300">{post.post.author.handle}</span>
+            by{" "}
+            <Button
+              variant="link"
+              className="h-auto p-0 text-zinc-300 hover:text-zinc-100"
+              onClick={() =>
+                window.open(getProfileUrl(post.post.author.handle), "_blank")
+              }
+            >
+              {post.post.author.handle}
+            </Button>
           </div>
 
           <div className="flex space-x-4 text-zinc-400 text-sm mt-2">
