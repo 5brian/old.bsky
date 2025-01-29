@@ -1,8 +1,10 @@
 "use client";
 
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
+import { RichText } from "@atproto/api";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { useState } from "react";
@@ -34,6 +36,10 @@ export function PostCard({ post }: PostCardProps) {
   const [repostUri, setRepostUri] = useState<string | undefined>(
     viewer?.repost,
   );
+  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [commentPosted, setCommentPosted] = useState(false);
 
   const handleLike = async () => {
     if (!agent) return;
@@ -70,6 +76,43 @@ export function PostCard({ post }: PostCardProps) {
       }
     } catch (error) {
       console.error("Failed to repost/unrepost:", error);
+    }
+  };
+
+  const handleComment = async () => {
+    if (!agent || !commentText.trim()) return;
+
+    setIsCommenting(true);
+    try {
+      const richText = new RichText({ text: commentText });
+      await richText.detectFacets(agent);
+
+      await agent.post({
+        text: richText.text,
+        reply: {
+          root: {
+            uri: post.post.uri,
+            cid: post.post.cid,
+          },
+          parent: {
+            uri: post.post.uri,
+            cid: post.post.cid,
+          },
+        },
+        facets: richText.facets,
+      });
+
+      setCommentText("");
+      setCommentPosted(true);
+
+      setTimeout(() => {
+        setCommentPosted(false);
+        setShowCommentBox(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+    } finally {
+      setIsCommenting(false);
     }
   };
 
@@ -357,7 +400,10 @@ export function PostCard({ post }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="p-0 text-sm hover:text-zinc-300 hover:underline"
+              className={`p-0 text-sm hover:text-zinc-300 hover:underline ${
+                commentPosted ? "text-blue-600 dark:text-blue-500" : ""
+              }`}
+              onClick={() => setShowCommentBox(!showCommentBox)}
             >
               {commentCount} {commentCount === 1 ? "comment" : "comments"}
             </Button>
@@ -380,6 +426,46 @@ export function PostCard({ post }: PostCardProps) {
               source
             </Button>
           </div>
+
+          {showCommentBox && (
+            <div className="mt-4 space-y-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                className={`min-h-[80px] bg-zinc-700 border-zinc-600 ${
+                  commentPosted ? "border-blue-600 dark:border-blue-500" : ""
+                }`}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowCommentBox(false);
+                    setCommentText("");
+                    setCommentPosted(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleComment}
+                  disabled={isCommenting || !commentText.trim()}
+                  className={
+                    commentPosted ? "bg-blue-600 hover:bg-blue-700" : ""
+                  }
+                >
+                  {isCommenting
+                    ? "Posting..."
+                    : commentPosted
+                      ? "Posted!"
+                      : "Comment"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>
