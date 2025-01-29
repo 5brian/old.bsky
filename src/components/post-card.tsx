@@ -66,7 +66,73 @@ export function PostCard({ post }: PostCardProps) {
     return `${BSKY_WEB_URL}/profile/${handle}`;
   };
 
-  const postRecord = post.post.record as AppBskyFeedPost.Record;
+  const renderPostText = () => {
+    const postRecord = post.post.record as AppBskyFeedPost.Record;
+    const text = postRecord.text;
+    const facets = postRecord.facets || [];
+
+    if (!facets.length) return text;
+
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+
+    const byteToStringIndex = (byteIndex: number): number => {
+      const bytes = encoder.encode(text);
+      const slice = decoder.decode(bytes.slice(0, byteIndex));
+      return slice.length;
+    };
+
+    const sortedFacets = [...facets].sort(
+      (a, b) => a.index.byteStart - b.index.byteStart,
+    );
+
+    let lastIndex = 0;
+    const elements: React.ReactNode[] = [];
+
+    sortedFacets.forEach((facet, idx) => {
+      const startIndex = byteToStringIndex(facet.index.byteStart);
+      const endIndex = byteToStringIndex(facet.index.byteEnd);
+
+      if (startIndex > lastIndex) {
+        elements.push(text.slice(lastIndex, startIndex));
+      }
+
+      if (
+        facet.features.some(
+          (f) => f.$type === "app.bsky.richtext.facet#mention",
+        )
+      ) {
+        const mention = facet.features.find(
+          (f) => f.$type === "app.bsky.richtext.facet#mention",
+        );
+        if (mention) {
+          elements.push(
+            <Button
+              key={`mention-${idx}`}
+              variant="link"
+              className="h-auto p-0 text-base text-blue-400 hover:text-blue-300 font-normal"
+              onClick={() =>
+                window.open(`${BSKY_WEB_URL}/profile/${mention.did}`, "_blank")
+              }
+            >
+              {text.slice(startIndex, endIndex)}
+            </Button>,
+          );
+        }
+      } else {
+        elements.push(text.slice(startIndex, endIndex));
+      }
+
+      lastIndex = endIndex;
+    });
+
+    if (lastIndex < text.length) {
+      elements.push(text.slice(lastIndex));
+    }
+
+    return elements;
+  };
+
   const commentCount = post.post.replyCount || 0;
 
   return (
@@ -88,7 +154,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
-          <div className="text-base mb-3">{postRecord.text}</div>
+          <div className="text-base mb-3">{renderPostText()}</div>
 
           <div className="text-sm text-zinc-400">
             submitted{" "}
