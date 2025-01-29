@@ -30,103 +30,22 @@ export function PostCard({ post }: PostCardProps) {
   const [isReposted, setIsReposted] = useState(viewer?.repost !== undefined);
   const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
   const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
-
-  const getPostTypes = () => {
-    const record = post.post.record as AppBskyFeedPost.Record;
-    const types: Array<{ type: string; url?: string }> = [];
-
-    const hasEmbedType = (type: string) => {
-      return (
-        record.embed && "$type" in record.embed && record.embed.$type === type
-      );
-    };
-
-    if (hasEmbedType("app.bsky.embed.record")) {
-      const embed = record.embed as {
-        record: { uri: string };
-        $type: string;
-      };
-      const parts = embed.record.uri.split("/");
-      const rkey = parts.pop();
-
-      const quoteEmbed = post.post.embed as {
-        record?: {
-          author?: {
-            handle: string;
-          };
-        };
-      };
-
-      if (quoteEmbed?.record?.author?.handle) {
-        const quoteAuthor = quoteEmbed.record.author.handle;
-        types.push({
-          type: "quote",
-          url: `${BSKY_WEB_URL}/profile/${quoteAuthor}/post/${rkey}`,
-        });
-      }
-    }
-
-    if (hasEmbedType("app.bsky.embed.images")) {
-      types.push({
-        type: "image",
-        url: getPostUrl(),
-      });
-    }
-
-    if (hasEmbedType("app.bsky.embed.video")) {
-      types.push({
-        type: "video",
-        url: getPostUrl(),
-      });
-    }
-
-    const linkFacet = record.facets?.find((facet) =>
-      facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
-    );
-    if (linkFacet) {
-      const link = linkFacet.features.find(
-        (f) => f.$type === "app.bsky.richtext.facet#link",
-      ) as { uri: string } | undefined;
-      if (link) {
-        types.push({
-          type: "link",
-          url: link.uri,
-        });
-      }
-    }
-
-    if (hasEmbedType("app.bsky.embed.external")) {
-      const external = (record.embed as { external?: { uri: string } })
-        .external;
-      if (external?.uri) {
-        if (!types.some((t) => t.type === "video")) {
-          if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
-            types.push({
-              type: "video embed",
-              url: external.uri,
-            });
-          } else {
-            types.push({
-              type: "embed",
-              url: external.uri,
-            });
-          }
-        }
-      }
-    }
-
-    return types;
-  };
+  const [likeUri, setLikeUri] = useState<string | undefined>(viewer?.like);
+  const [repostUri, setRepostUri] = useState<string | undefined>(
+    viewer?.repost,
+  );
 
   const handleLike = async () => {
     if (!agent) return;
     try {
       if (!isLiked) {
-        await agent.like(post.post.uri, post.post.cid);
+        const response = await agent.like(post.post.uri, post.post.cid);
+        setLikeUri(response.uri);
         setIsLiked(true);
         setLikeCount((prev) => prev + 1);
-      } else {
-        await agent.deleteLike(post.post.uri);
+      } else if (likeUri) {
+        await agent.deleteLike(likeUri);
+        setLikeUri(undefined);
         setIsLiked(false);
         setLikeCount((prev) => prev - 1);
       }
@@ -139,11 +58,13 @@ export function PostCard({ post }: PostCardProps) {
     if (!agent) return;
     try {
       if (!isReposted) {
-        await agent.repost(post.post.uri, post.post.cid);
+        const response = await agent.repost(post.post.uri, post.post.cid);
+        setRepostUri(response.uri);
         setIsReposted(true);
         setRepostCount((prev) => prev + 1);
-      } else {
-        await agent.deleteRepost(post.post.uri);
+      } else if (repostUri) {
+        await agent.deleteRepost(repostUri);
+        setRepostUri(undefined);
         setIsReposted(false);
         setRepostCount((prev) => prev - 1);
       }
@@ -278,6 +199,93 @@ export function PostCard({ post }: PostCardProps) {
     });
 
     return elements;
+  };
+
+  const getPostTypes = () => {
+    const record = post.post.record as AppBskyFeedPost.Record;
+    const types: Array<{ type: string; url?: string }> = [];
+
+    const hasEmbedType = (type: string) => {
+      return (
+        record.embed && "$type" in record.embed && record.embed.$type === type
+      );
+    };
+
+    if (hasEmbedType("app.bsky.embed.record")) {
+      const embed = record.embed as {
+        record: { uri: string };
+        $type: string;
+      };
+      const parts = embed.record.uri.split("/");
+      const rkey = parts.pop();
+
+      const quoteEmbed = post.post.embed as {
+        record?: {
+          author?: {
+            handle: string;
+          };
+        };
+      };
+
+      if (quoteEmbed?.record?.author?.handle) {
+        const quoteAuthor = quoteEmbed.record.author.handle;
+        types.push({
+          type: "quote",
+          url: `${BSKY_WEB_URL}/profile/${quoteAuthor}/post/${rkey}`,
+        });
+      }
+    }
+
+    if (hasEmbedType("app.bsky.embed.images")) {
+      types.push({
+        type: "image",
+        url: getPostUrl(),
+      });
+    }
+
+    if (hasEmbedType("app.bsky.embed.video")) {
+      types.push({
+        type: "video",
+        url: getPostUrl(),
+      });
+    }
+
+    const linkFacet = record.facets?.find((facet) =>
+      facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
+    );
+    if (linkFacet) {
+      const link = linkFacet.features.find(
+        (f) => f.$type === "app.bsky.richtext.facet#link",
+      ) as { uri: string } | undefined;
+      if (link) {
+        types.push({
+          type: "link",
+          url: link.uri,
+        });
+      }
+    }
+
+    if (hasEmbedType("app.bsky.embed.external")) {
+      const external = (record.embed as { external?: { uri: string } })
+        .external;
+      if (external?.uri) {
+        if (!types.some((t) => t.type === "video")) {
+          if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
+            types.push({
+              type: "video embed",
+              url: external.uri,
+            });
+          } else {
+            types.push({
+              type: "embed",
+              url: external.uri,
+            });
+          }
+        }
+      }
+    }
+
+    return types;
   };
 
   const commentCount = post.post.replyCount || 0;
