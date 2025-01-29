@@ -104,7 +104,7 @@ export function PostCard({ post }: PostCardProps) {
       ) {
         const mention = facet.features.find(
           (f) => f.$type === "app.bsky.richtext.facet#mention",
-        );
+        ) as { did: string } | undefined;
         if (mention) {
           elements.push(
             <Button
@@ -114,6 +114,25 @@ export function PostCard({ post }: PostCardProps) {
               onClick={() =>
                 window.open(`${BSKY_WEB_URL}/profile/${mention.did}`, "_blank")
               }
+            >
+              {text.slice(startIndex, endIndex)}
+            </Button>,
+          );
+        }
+      } else if (
+        facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link")
+      ) {
+        const link = facet.features.find(
+          (f) => f.$type === "app.bsky.richtext.facet#link",
+        ) as { uri: string } | undefined;
+
+        if (link) {
+          elements.push(
+            <Button
+              key={`link-${idx}`}
+              variant="link"
+              className="h-auto p-0 text-base text-blue-400 hover:text-blue-300 font-normal"
+              onClick={() => window.open(link.uri, "_blank")}
             >
               {text.slice(startIndex, endIndex)}
             </Button>,
