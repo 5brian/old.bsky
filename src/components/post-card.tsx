@@ -33,13 +33,28 @@ export function PostCard({ post }: PostCardProps) {
     };
 
     if (hasEmbedType("app.bsky.embed.record")) {
-      const embed = record.embed as { record: { uri: string } };
-      const rkey = embed.record.uri.split("/").pop();
-      const handle = post.post.author.handle;
-      types.push({
-        type: "quote",
-        url: `${BSKY_WEB_URL}/profile/${handle}/post/${rkey}`,
-      });
+      const embed = record.embed as {
+        record: { uri: string };
+        $type: string;
+      };
+      const parts = embed.record.uri.split("/");
+      const rkey = parts.pop();
+
+      const quoteEmbed = post.post.embed as {
+        record?: {
+          author?: {
+            handle: string;
+          };
+        };
+      };
+
+      if (quoteEmbed?.record?.author?.handle) {
+        const quoteAuthor = quoteEmbed.record.author.handle;
+        types.push({
+          type: "quote",
+          url: `${BSKY_WEB_URL}/profile/${quoteAuthor}/post/${rkey}`,
+        });
+      }
     }
 
     if (hasEmbedType("app.bsky.embed.images")) {
