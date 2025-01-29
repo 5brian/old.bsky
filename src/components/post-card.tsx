@@ -109,10 +109,7 @@ export function PostCard({ post }: PostCardProps) {
       setCommentCount((prev) => prev + 1);
       setCommentPosted(true);
       setHasCommented(true);
-
-      setTimeout(() => {
-        setShowCommentBox(false);
-      }, 2000);
+      setShowCommentBox(false);
     } catch (error) {
       console.error("Failed to post comment:", error);
     } finally {
