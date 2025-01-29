@@ -14,6 +14,15 @@ interface PostCardProps {
   post: AppBskyFeedDefs.FeedViewPost;
 }
 
+type EmbedViewRecord = {
+  $type: string;
+  record: {
+    author: {
+      handle: string;
+    };
+  };
+};
+
 export function PostCard({ post }: PostCardProps) {
   const { agent } = useAuth();
   const viewer = post.post.viewer as AppBskyFeedDefs.ViewerState | undefined;
@@ -309,6 +318,29 @@ export function PostCard({ post }: PostCardProps) {
             >
               {post.post.author.handle}
             </Button>
+            {post.post.embed &&
+              "$type" in post.post.embed &&
+              post.post.embed.$type === "app.bsky.embed.record#view" &&
+              (post.post.embed as EmbedViewRecord).record?.author?.handle && (
+                <>
+                  {" and "}
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-zinc-300 hover:text-zinc-100"
+                    onClick={() =>
+                      window.open(
+                        getProfileUrl(
+                          (post.post.embed as EmbedViewRecord).record.author
+                            .handle,
+                        ),
+                        "_blank",
+                      )
+                    }
+                  >
+                    {(post.post.embed as EmbedViewRecord).record.author.handle}
+                  </Button>
+                </>
+              )}
           </div>
 
           <div className="flex space-x-4 text-zinc-400 text-sm mt-2">
