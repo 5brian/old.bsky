@@ -2,6 +2,8 @@
 
 A bluesky client inspired by old.reddit.com
 
+> Experimental
+
 ![old.bsky screenshot](public/screenshots/temp.png)
 
 ## dev
