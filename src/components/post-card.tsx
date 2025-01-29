@@ -321,7 +321,9 @@ export function PostCard({ post }: PostCardProps) {
             {post.post.embed &&
               "$type" in post.post.embed &&
               post.post.embed.$type === "app.bsky.embed.record#view" &&
-              (post.post.embed as EmbedViewRecord).record?.author?.handle && (
+              (post.post.embed as EmbedViewRecord).record?.author?.handle &&
+              post.post.author.handle !==
+                (post.post.embed as EmbedViewRecord).record.author.handle && (
                 <>
                   {" and "}
                   <Button
