@@ -22,18 +22,51 @@ export function PostCard({ post }: PostCardProps) {
   const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
   const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
 
-  const getPostType = () => {
+  const getPostTypes = () => {
     const record = post.post.record as AppBskyFeedPost.Record;
+    const types: string[] = [];
 
-    if ("embed" in record && record.embed?.$type === "app.bsky.embed.record") {
-      return "[quote]";
+    const hasEmbedType = (type: string) => {
+      return (
+        record.embed && "$type" in record.embed && record.embed.$type === type
+      );
+    };
+
+    if (hasEmbedType("app.bsky.embed.record")) {
+      types.push("[quote]");
     }
 
-    if ("embed" in record && record.embed?.$type === "app.bsky.embed.images") {
-      return "[image]";
+    if (hasEmbedType("app.bsky.embed.images")) {
+      types.push("[image]");
     }
 
-    return null;
+    if (hasEmbedType("app.bsky.embed.video")) {
+      types.push("[video]");
+    }
+
+    if (
+      record.facets?.some((facet) =>
+        facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
+      )
+    ) {
+      types.push("[link]");
+    }
+
+    if (hasEmbedType("app.bsky.embed.external")) {
+      const external = (record.embed as { external?: { uri: string } })
+        .external;
+      if (external?.uri) {
+        if (!types.includes("[video]")) {
+          if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
+            types.push("[video embed]");
+          } else {
+            types.push("[embed]");
+          }
+        }
+      }
+    }
+
+    return types.length > 0 ? types.join(" ") : null;
   };
 
   const handleLike = async () => {
@@ -167,7 +200,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const commentCount = post.post.replyCount || 0;
-  const postType = getPostType();
+  const postTypes = getPostTypes();
 
   return (
     <Card className="bg-zinc-800 border-zinc-700">
@@ -188,8 +221,10 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
-          {postType && (
-            <span className="text-xs text-zinc-500 mb-2 block">{postType}</span>
+          {postTypes && (
+            <span className="text-xs text-zinc-500 mb-2 block">
+              {postTypes}
+            </span>
           )}
           <div className="text-base mb-3">{renderPostText()}</div>
 
