@@ -9,6 +9,7 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "./auth-provider";
 import { useState } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const BSKY_WEB_URL = "https://bsky.app";
 
@@ -40,6 +41,8 @@ export function PostCard({ post }: PostCardProps) {
   const [commentText, setCommentText] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [commentPosted, setCommentPosted] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.post.replyCount || 0);
+  const [hasCommented, setHasCommented] = useState(false);
 
   const handleLike = async () => {
     if (!agent) return;
@@ -103,10 +106,11 @@ export function PostCard({ post }: PostCardProps) {
       });
 
       setCommentText("");
+      setCommentCount((prev) => prev + 1);
       setCommentPosted(true);
+      setHasCommented(true);
 
       setTimeout(() => {
-        setCommentPosted(false);
         setShowCommentBox(false);
       }, 2000);
     } catch (error) {
@@ -331,8 +335,6 @@ export function PostCard({ post }: PostCardProps) {
     return types;
   };
 
-  const commentCount = post.post.replyCount || 0;
-
   return (
     <Card className="bg-zinc-800 border-zinc-700">
       <div className="flex">
@@ -400,9 +402,11 @@ export function PostCard({ post }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className={`p-0 text-sm hover:text-zinc-300 hover:underline ${
-                commentPosted ? "text-blue-600 dark:text-blue-500" : ""
-              }`}
+              className={cn(
+                "p-0 text-sm hover:text-zinc-300 hover:underline",
+                (hasCommented || commentPosted) &&
+                  "text-blue-500 hover:text-blue-400",
+              )}
               onClick={() => setShowCommentBox(!showCommentBox)}
             >
               {commentCount} {commentCount === 1 ? "comment" : "comments"}
@@ -433,9 +437,10 @@ export function PostCard({ post }: PostCardProps) {
                 placeholder="Write a comment..."
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                className={`min-h-[80px] bg-zinc-700 border-zinc-600 ${
-                  commentPosted ? "border-blue-600 dark:border-blue-500" : ""
-                }`}
+                className={cn(
+                  "min-h-[80px] bg-zinc-700 border-zinc-600",
+                  (hasCommented || commentPosted) && "border-blue-500",
+                )}
               />
               <div className="flex justify-end space-x-2">
                 <Button
@@ -444,7 +449,6 @@ export function PostCard({ post }: PostCardProps) {
                   onClick={() => {
                     setShowCommentBox(false);
                     setCommentText("");
-                    setCommentPosted(false);
                   }}
                 >
                   Cancel
@@ -453,9 +457,10 @@ export function PostCard({ post }: PostCardProps) {
                   size="sm"
                   onClick={handleComment}
                   disabled={isCommenting || !commentText.trim()}
-                  className={
-                    commentPosted ? "bg-blue-600 hover:bg-blue-700" : ""
-                  }
+                  className={cn(
+                    hasCommented && "bg-blue-500 hover:bg-blue-600",
+                    commentPosted && "bg-blue-500 hover:bg-blue-600",
+                  )}
                 >
                   {isCommenting
                     ? "Posting..."
