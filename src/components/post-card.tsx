@@ -22,6 +22,20 @@ export function PostCard({ post }: PostCardProps) {
   const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
   const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
 
+  const getPostType = () => {
+    const record = post.post.record as AppBskyFeedPost.Record;
+
+    if ("embed" in record && record.embed?.$type === "app.bsky.embed.record") {
+      return "[quote]";
+    }
+
+    if ("embed" in record && record.embed?.$type === "app.bsky.embed.images") {
+      return "[image]";
+    }
+
+    return null;
+  };
+
   const handleLike = async () => {
     if (!agent) return;
     try {
@@ -153,6 +167,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const commentCount = post.post.replyCount || 0;
+  const postType = getPostType();
 
   return (
     <Card className="bg-zinc-800 border-zinc-700">
@@ -173,6 +188,9 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
+          {postType && (
+            <span className="text-xs text-zinc-500 mb-2 block">{postType}</span>
+          )}
           <div className="text-base mb-3">{renderPostText()}</div>
 
           <div className="text-sm text-zinc-400">
