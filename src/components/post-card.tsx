@@ -404,7 +404,12 @@ export function PostCard({ post }: PostCardProps) {
                 (hasCommented || commentPosted) &&
                   "text-blue-500 hover:text-blue-400",
               )}
-              onClick={() => setShowCommentBox(!showCommentBox)}
+              onClick={() => {
+                setShowCommentBox(!showCommentBox);
+                if (!showCommentBox) {
+                  setCommentPosted(false);
+                }
+              }}
             >
               {commentCount} {commentCount === 1 ? "comment" : "comments"}
             </Button>
@@ -459,11 +464,7 @@ export function PostCard({ post }: PostCardProps) {
                     commentPosted && "bg-blue-500 hover:bg-blue-600",
                   )}
                 >
-                  {isCommenting
-                    ? "Posting..."
-                    : commentPosted
-                      ? "Posted!"
-                      : "Comment"}
+                  {isCommenting ? "Posting..." : "Comment"}
                 </Button>
               </div>
             </div>
