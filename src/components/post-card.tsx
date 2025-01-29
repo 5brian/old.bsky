@@ -24,7 +24,7 @@ export function PostCard({ post }: PostCardProps) {
 
   const getPostTypes = () => {
     const record = post.post.record as AppBskyFeedPost.Record;
-    const types: string[] = [];
+    const types: Array<{ type: string; url?: string }> = [];
 
     const hasEmbedType = (type: string) => {
       return (
@@ -33,34 +33,59 @@ export function PostCard({ post }: PostCardProps) {
     };
 
     if (hasEmbedType("app.bsky.embed.record")) {
-      types.push("quote");
+      const embed = record.embed as { record: { uri: string } };
+      const rkey = embed.record.uri.split("/").pop();
+      const handle = post.post.author.handle;
+      types.push({
+        type: "quote",
+        url: `${BSKY_WEB_URL}/profile/${handle}/post/${rkey}`,
+      });
     }
 
     if (hasEmbedType("app.bsky.embed.images")) {
-      types.push("image");
+      types.push({
+        type: "image",
+        url: getPostUrl(),
+      });
     }
 
     if (hasEmbedType("app.bsky.embed.video")) {
-      types.push("video");
+      types.push({
+        type: "video",
+        url: getPostUrl(),
+      });
     }
 
-    if (
-      record.facets?.some((facet) =>
-        facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
-      )
-    ) {
-      types.push("link");
+    const linkFacet = record.facets?.find((facet) =>
+      facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
+    );
+    if (linkFacet) {
+      const link = linkFacet.features.find(
+        (f) => f.$type === "app.bsky.richtext.facet#link",
+      ) as { uri: string } | undefined;
+      if (link) {
+        types.push({
+          type: "link",
+          url: link.uri,
+        });
+      }
     }
 
     if (hasEmbedType("app.bsky.embed.external")) {
       const external = (record.embed as { external?: { uri: string } })
         .external;
       if (external?.uri) {
-        if (!types.includes("video")) {
+        if (!types.some((t) => t.type === "video")) {
           if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
-            types.push("video embed");
+            types.push({
+              type: "video embed",
+              url: external.uri,
+            });
           } else {
-            types.push("embed");
+            types.push({
+              type: "embed",
+              url: external.uri,
+            });
           }
         }
       }
@@ -122,13 +147,17 @@ export function PostCard({ post }: PostCardProps) {
       return (
         <>
           {text}{" "}
-          {getPostTypes().map((type, index) => (
-            <span
+          {getPostTypes().map((typeInfo, index) => (
+            <Button
               key={index}
-              className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300"
+              variant="ghost"
+              className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300 hover:bg-zinc-600/50 ml-1 h-auto"
+              onClick={() =>
+                typeInfo.url && window.open(typeInfo.url, "_blank")
+              }
             >
-              {type}
-            </span>
+              {typeInfo.type}
+            </Button>
           ))}
         </>
       );
@@ -211,14 +240,16 @@ export function PostCard({ post }: PostCardProps) {
     }
 
     elements.push(" ");
-    getPostTypes().forEach((type, index) => {
+    getPostTypes().forEach((typeInfo, index) => {
       elements.push(
-        <span
+        <Button
           key={`type-${index}`}
-          className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300 ml-1"
+          variant="ghost"
+          className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300 hover:bg-zinc-600/50 ml-1 h-auto"
+          onClick={() => typeInfo.url && window.open(typeInfo.url, "_blank")}
         >
-          {type}
-        </span>,
+          {typeInfo.type}
+        </Button>,
       );
     });
 
