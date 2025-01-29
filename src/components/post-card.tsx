@@ -33,15 +33,15 @@ export function PostCard({ post }: PostCardProps) {
     };
 
     if (hasEmbedType("app.bsky.embed.record")) {
-      types.push("[quote]");
+      types.push("quote");
     }
 
     if (hasEmbedType("app.bsky.embed.images")) {
-      types.push("[image]");
+      types.push("image");
     }
 
     if (hasEmbedType("app.bsky.embed.video")) {
-      types.push("[video]");
+      types.push("video");
     }
 
     if (
@@ -49,24 +49,24 @@ export function PostCard({ post }: PostCardProps) {
         facet.features.some((f) => f.$type === "app.bsky.richtext.facet#link"),
       )
     ) {
-      types.push("[link]");
+      types.push("link");
     }
 
     if (hasEmbedType("app.bsky.embed.external")) {
       const external = (record.embed as { external?: { uri: string } })
         .external;
       if (external?.uri) {
-        if (!types.includes("[video]")) {
+        if (!types.includes("video")) {
           if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
-            types.push("[video embed]");
+            types.push("video embed");
           } else {
-            types.push("[embed]");
+            types.push("embed");
           }
         }
       }
     }
 
-    return types.length > 0 ? types.join(" ") : null;
+    return types;
   };
 
   const handleLike = async () => {
@@ -200,7 +200,6 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const commentCount = post.post.replyCount || 0;
-  const postTypes = getPostTypes();
 
   return (
     <Card className="bg-zinc-800 border-zinc-700">
@@ -221,12 +220,19 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
-          {postTypes && (
-            <span className="text-xs text-zinc-500 mb-2 block">
-              {postTypes}
-            </span>
-          )}
-          <div className="text-base mb-3">{renderPostText()}</div>
+          <div className="text-base mb-3">
+            {renderPostText()}
+            <div className="flex flex-wrap gap-2 mt-2">
+              {getPostTypes().map((type, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center rounded-full bg-zinc-700/50 px-2.5 py-0.5 text-xs font-medium text-zinc-300"
+                >
+                  {type}
+                </span>
+              ))}
+            </div>
+          </div>
 
           <div className="text-sm text-zinc-400">
             submitted{" "}
