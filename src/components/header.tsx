@@ -24,9 +24,10 @@ import { Menu, Code, CircleDot, LogOut, User } from "lucide-react";
 export function Header() {
   const { isAuthenticated, login, logout, agent } = useAuth();
   const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
+  const [appPassword, setAppPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [handle, setHandle] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchHandle = async () => {
@@ -53,10 +54,25 @@ export function Header() {
 
   const handleLogin = async () => {
     setIsLoading(true);
+    setLoginError(null);
+
+    const appPasswordRegex =
+      /^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/;
+    if (!appPasswordRegex.test(appPassword)) {
+      setLoginError(
+        "This appears to be a regular password, please use an app password instead.",
+      );
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await login(identifier, password);
+      await login(identifier, appPassword);
     } catch (error) {
       console.error("Login failed:", error);
+      setLoginError(
+        "Login failed. Please check your credentials and try again.",
+      );
     }
     setIsLoading(false);
   };
@@ -151,25 +167,42 @@ export function Header() {
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Login to Bluesky</DialogTitle>
+                    <p className="text-sm text-zinc-400 mt-2">
+                      For your security, this app requires an app password. You
+                      can create one at{" "}
+                      <a
+                        href="https://bsky.app/settings/app-passwords"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        bsky.app/settings/app-passwords
+                      </a>
+                    </p>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="identifier">Handle or Email</Label>
+                      <Label htmlFor="identifier">Username or Email</Label>
                       <Input
                         id="identifier"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder="e.g. handle.bsky.social"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="appPassword">App Password</Label>
                       <Input
-                        id="password"
+                        id="appPassword"
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={appPassword}
+                        onChange={(e) => setAppPassword(e.target.value)}
+                        placeholder="xxxx-xxxx-xxxx-xxxx"
                       />
                     </div>
+                    {loginError && (
+                      <p className="text-sm text-red-500">{loginError}</p>
+                    )}
                   </div>
                   <Button onClick={handleLogin} disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}
