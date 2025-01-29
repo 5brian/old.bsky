@@ -118,7 +118,21 @@ export function PostCard({ post }: PostCardProps) {
     const text = postRecord.text;
     const facets = postRecord.facets || [];
 
-    if (!facets.length) return text;
+    if (!facets.length) {
+      return (
+        <>
+          {text}{" "}
+          {getPostTypes().map((type, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300"
+            >
+              {type}
+            </span>
+          ))}
+        </>
+      );
+    }
 
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -196,6 +210,18 @@ export function PostCard({ post }: PostCardProps) {
       elements.push(text.slice(lastIndex));
     }
 
+    elements.push(" ");
+    getPostTypes().forEach((type, index) => {
+      elements.push(
+        <span
+          key={`type-${index}`}
+          className="inline-flex items-center rounded-full bg-zinc-700/50 px-2 py-0.5 text-xs font-medium text-zinc-300 ml-1"
+        >
+          {type}
+        </span>,
+      );
+    });
+
     return elements;
   };
 
@@ -220,19 +246,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
 
         <div className="flex-1 p-4">
-          <div className="text-base mb-3">
-            {renderPostText()}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {getPostTypes().map((type, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center rounded-full bg-zinc-700/50 px-2.5 py-0.5 text-xs font-medium text-zinc-300"
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-          </div>
+          <div className="text-base mb-3">{renderPostText()}</div>
 
           <div className="text-sm text-zinc-400">
             submitted{" "}
