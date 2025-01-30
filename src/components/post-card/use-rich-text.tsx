@@ -1,5 +1,5 @@
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import React from "react";
 
 export function useRichText(post: AppBskyFeedDefs.FeedViewPost) {

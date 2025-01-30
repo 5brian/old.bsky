@@ -9,7 +9,7 @@ import {
   // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "./auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -17,10 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Label } from "./ui/label";
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Menu, Code, CircleDot, LogOut, User } from "lucide-react";
-import { useFeed } from "./feed-provider";
+import { useFeed } from "@/components/feed/feed-provider";
 
 const FEED_TYPES = [
   { label: "following", value: "following" },

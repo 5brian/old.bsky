@@ -1,4 +1,4 @@
-import { Feed } from "@/components/feed";
+import { Feed } from "@/components/feed/feed";
 import { Sidebar } from "@/components/sidebar";
 
 export default function Home() {

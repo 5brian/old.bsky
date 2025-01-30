@@ -1,8 +1,8 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useAuth } from "../auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 import { RichText } from "@atproto/api";
 

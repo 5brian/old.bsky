@@ -1,7 +1,7 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useAuth } from "../auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 interface PostActionsProps {

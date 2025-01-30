@@ -7,11 +7,11 @@ import React, {
   useLayoutEffect,
 } from "react";
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
-import { useAuth } from "./auth-provider";
-import { useFeed } from "./feed-provider";
-import { PostCard } from "./post-card";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useFeed } from "@/components/feed/feed-provider";
+import { PostCard } from "@/components/post-card";
 import { Loader2 } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 const POSTS_PER_PAGE = 20;
 

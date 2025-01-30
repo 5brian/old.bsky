@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "./ui/button";
-import { Card } from "./ui/card";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useAuth } from "./auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import {
   Dialog,
   DialogContent,

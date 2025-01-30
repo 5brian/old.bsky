@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
-import { AuthProvider } from "@/components/auth-provider";
+import { AuthProvider } from "@/components/auth/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
-import { FeedProvider } from "@/components/feed-provider";
+import { FeedProvider } from "@/components/feed/feed-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 

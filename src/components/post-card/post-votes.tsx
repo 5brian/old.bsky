@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import type { AppBskyFeedDefs } from "@atproto/api";
-import { useAuth } from "../auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface PostVotesProps {
   post: AppBskyFeedDefs.FeedViewPost;
