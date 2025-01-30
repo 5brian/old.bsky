@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback, useLayoutEffect } from "react";
-import { useAuth } from "./auth-provider";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
+import { useAuth } from "./auth-provider";
+import { useFeed } from "./feed-provider";
 import { PostCard } from "./post-card";
-import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
 
 const POSTS_PER_PAGE = 20;
 
@@ -14,30 +20,22 @@ type PageData = {
   cursor: string | undefined;
 };
 
-type ReplyRecord = {
-  reply?: {
-    parent?: {
-      uri?: string;
-    };
-  };
-};
+function isReplyRecord(record: unknown): record is AppBskyFeedPost.Record {
+  if (!record || typeof record !== "object") return false;
+  const maybeReply = record as { reply?: { parent?: { uri?: string } } };
+  return (
+    "reply" in maybeReply && typeof maybeReply.reply?.parent?.uri === "string"
+  );
+}
 
 export function Feed() {
+  const { feedType } = useFeed();
   const { agent, isAuthenticated } = useAuth();
+
   const [pages, setPages] = useState<Map<number, PageData>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-
-  const currentPageData = pages.get(currentPage);
-
-  const isReplyRecord = (record: unknown): record is AppBskyFeedPost.Record => {
-    if (!record || typeof record !== "object") return false;
-    const replyRecord = record as ReplyRecord;
-    return (
-      "reply" in record && typeof replyRecord.reply?.parent?.uri === "string"
-    );
-  };
 
   const getTopLevelPost = useCallback(
     async (
@@ -58,12 +56,12 @@ export function Feed() {
             return null;
           }
 
-          const parentPost = {
+          const parentPost: AppBskyFeedDefs.FeedViewPost = {
             post: response.data.posts[0],
             reason: post.reason,
-          } as AppBskyFeedDefs.FeedViewPost;
-
+          };
           const parentRecord = parentPost.post.record as AppBskyFeedPost.Record;
+
           if (!isReplyRecord(parentRecord)) {
             return parentPost;
           }
@@ -73,8 +71,8 @@ export function Feed() {
         }
 
         return currentPost;
-      } catch (error) {
-        console.error("Failed to fetch top-level post:", error);
+      } catch (err) {
+        console.error("Failed to fetch top-level post:", err);
         return null;
       }
     },
@@ -83,63 +81,103 @@ export function Feed() {
 
   const loadPage = useCallback(
     async (pageNumber: number) => {
-      if (!agent || isLoading) return;
-
-      if (pages.has(pageNumber)) {
-        setCurrentPage(pageNumber);
-        return;
-      }
+      if (!agent) return;
 
       setIsLoading(true);
       setError(null);
 
-      try {
-        const prevPageData = pages.get(pageNumber - 1);
-        const response = await agent.getTimeline({
-          limit: POSTS_PER_PAGE * 2,
-          cursor: pageNumber === 1 ? undefined : prevPageData?.cursor,
-        });
+      let pageAlreadyExists = false;
+      let prevCursor: string | undefined = undefined;
+      const additionalPostsNeeded = POSTS_PER_PAGE;
 
-        if (response.success) {
+      setPages((oldMap) => {
+        if (oldMap.has(pageNumber)) {
+          pageAlreadyExists = true;
+        }
+        if (oldMap.has(pageNumber - 1)) {
+          prevCursor = oldMap.get(pageNumber - 1)?.cursor;
+        }
+        return oldMap;
+      });
+
+      if (pageAlreadyExists) {
+        setCurrentPage(pageNumber);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const accumulatedPosts: AppBskyFeedDefs.FeedViewPost[] = [];
+        let currentCursor: string | undefined = prevCursor;
+        let response;
+
+        while (accumulatedPosts.length < additionalPostsNeeded) {
+          if (feedType === "following") {
+            response = await agent.getTimeline({
+              limit: POSTS_PER_PAGE * 2,
+              cursor: currentCursor,
+            });
+          } else {
+            response = await agent.app.bsky.feed.getFeed({
+              feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
+              limit: POSTS_PER_PAGE * 2,
+              cursor: currentCursor,
+            });
+          }
+
+          if (!response.success) {
+            throw new Error("Failed to load feed");
+          }
+
+          if (!response.data.cursor) {
+            break;
+          }
+
           const processedPosts = await Promise.all(
-            response.data.feed.map(async (post) => {
-              const record = post.post.record as AppBskyFeedPost.Record;
-              if (isReplyRecord(record)) {
-                const topLevelPost = await getTopLevelPost(post);
-                return topLevelPost;
-              }
-              return post;
-            }),
+            response.data.feed.map(
+              async (item: AppBskyFeedDefs.FeedViewPost) => {
+                const rec = item.post.record as AppBskyFeedPost.Record;
+                if (isReplyRecord(rec)) {
+                  return await getTopLevelPost(item);
+                }
+                return item;
+              },
+            ),
           );
 
           const uniquePosts = processedPosts
             .filter(
-              (post): post is AppBskyFeedDefs.FeedViewPost => post !== null,
+              (res): res is AppBskyFeedDefs.FeedViewPost =>
+                res !== null && res !== undefined,
             )
             .filter(
-              (post, index, self) =>
-                index === self.findIndex((p) => p.post.uri === post.post.uri),
-            )
-            .slice(0, POSTS_PER_PAGE);
+              (p, idx, self) =>
+                idx === self.findIndex((q) => q.post.uri === p.post.uri),
+            );
 
-          setPages((prevPages) => {
-            const newPages = new Map(prevPages);
-            newPages.set(pageNumber, {
-              posts: uniquePosts,
-              cursor: response.data.cursor,
-            });
-            return newPages;
-          });
-          setCurrentPage(pageNumber);
+          accumulatedPosts.push(...uniquePosts);
+          currentCursor = response.data.cursor;
         }
-      } catch (error) {
-        console.error("Failed to load feed:", error);
+
+        const finalPosts = accumulatedPosts.slice(0, additionalPostsNeeded);
+
+        setPages((oldMap) => {
+          const newMap = new Map(oldMap);
+          newMap.set(pageNumber, {
+            posts: finalPosts,
+            cursor: currentCursor,
+          });
+          return newMap;
+        });
+        setCurrentPage(pageNumber);
+      } catch (err) {
+        console.error(err);
         setError("Failed to load posts. Please try again.");
       } finally {
         setIsLoading(false);
       }
     },
-    [agent, isLoading, pages, getTopLevelPost],
+    [agent, feedType, getTopLevelPost],
   );
 
   useLayoutEffect(() => {
@@ -147,10 +185,15 @@ export function Feed() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (agent && !pages.has(1)) {
-      loadPage(1);
-    }
-  }, [agent, loadPage, pages]);
+    if (!agent) return;
+    (async () => {
+      setPages(new Map());
+      setCurrentPage(1);
+      await loadPage(1);
+    })();
+  }, [agent, feedType, loadPage]);
+
+  const currentPageData = pages.get(currentPage);
 
   if (!isAuthenticated) {
     return (
