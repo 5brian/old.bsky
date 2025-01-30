@@ -73,22 +73,25 @@ export function usePostTypes(post: AppBskyFeedDefs.FeedViewPost) {
     }
   }
 
-  // Handle external embeds
+  // Handle embeds
   if (hasEmbedType("app.bsky.embed.external")) {
     const external = (record.embed as { external?: { uri: string } }).external;
     if (external?.uri) {
-      if (!types.some((t) => t.type === "video")) {
-        if (external.uri.match(/youtube\.com|youtu\.be|vimeo\.com/i)) {
-          types.push({
-            type: "video embed",
-            url: external.uri,
-          });
-        } else {
-          types.push({
-            type: "embed",
-            url: external.uri,
-          });
-        }
+      if (external.uri.match(/youtube\.com|youtu\.be/i)) {
+        types.push({
+          type: "youtube",
+          url: external.uri,
+        });
+      } else if (external.uri.match(/spotify\.com/i)) {
+        types.push({
+          type: "spotify",
+          url: external.uri,
+        });
+      } else {
+        types.push({
+          type: "embed",
+          url: external.uri,
+        });
       }
     }
   }
