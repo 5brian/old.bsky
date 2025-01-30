@@ -20,6 +20,12 @@ import {
 } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Menu, Code, CircleDot, LogOut, User } from "lucide-react";
+import { useFeed } from "./feed-provider";
+
+const FEED_TYPES = [
+  { label: "following", value: "following" },
+  { label: "discovery", value: "discovery" },
+] as const;
 
 export function Header() {
   const { isAuthenticated, login, logout, agent } = useAuth();
@@ -28,6 +34,7 @@ export function Header() {
   const [isLoading, setIsLoading] = useState(false);
   const [handle, setHandle] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const { feedType, setFeedType } = useFeed();
 
   useEffect(() => {
     const fetchHandle = async () => {
@@ -88,16 +95,19 @@ export function Header() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <span className="text-2xl font-bold">old.bsky</span>
-          <nav className="hidden md:flex space-x-1">
-            {["hot", "new", "top", "following"].map((item) => (
-              <Button
-                key={item}
-                variant="ghost"
-                size="sm"
-                className="text-zinc-400 hover:text-zinc-100"
+          <nav className="hidden md:flex space-x-4">
+            {FEED_TYPES.map((item) => (
+              <button
+                key={item.value}
+                className={`px-2 py-1 text-sm transition-colors ${
+                  feedType === item.value
+                    ? "text-blue-400 font-medium"
+                    : "text-zinc-400 hover:text-zinc-100"
+                }`}
+                onClick={() => setFeedType(item.value)}
               >
-                {item}
-              </Button>
+                {item.label}
+              </button>
             ))}
           </nav>
         </div>

@@ -6,6 +6,7 @@ import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
 import { PostCard } from "./post-card";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
+import { useFeed } from "./feed-provider";
 
 const POSTS_PER_PAGE = 20;
 
@@ -23,6 +24,7 @@ type ReplyRecord = {
 };
 
 export function Feed() {
+  const { feedType } = useFeed();
   const { agent, isAuthenticated } = useAuth();
   const [pages, setPages] = useState<Map<number, PageData>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
@@ -95,10 +97,20 @@ export function Feed() {
 
       try {
         const prevPageData = pages.get(pageNumber - 1);
-        const response = await agent.getTimeline({
-          limit: POSTS_PER_PAGE * 2,
-          cursor: pageNumber === 1 ? undefined : prevPageData?.cursor,
-        });
+        let response;
+
+        if (feedType === "following") {
+          response = await agent.getTimeline({
+            limit: POSTS_PER_PAGE * 2,
+            cursor: pageNumber === 1 ? undefined : prevPageData?.cursor,
+          });
+        } else {
+          response = await agent.app.bsky.feed.getFeed({
+            feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
+            limit: POSTS_PER_PAGE * 2,
+            cursor: pageNumber === 1 ? undefined : prevPageData?.cursor,
+          });
+        }
 
         if (response.success) {
           const processedPosts = await Promise.all(
@@ -139,7 +151,7 @@ export function Feed() {
         setIsLoading(false);
       }
     },
-    [agent, isLoading, pages, getTopLevelPost],
+    [agent, isLoading, pages, getTopLevelPost, feedType],
   );
 
   useLayoutEffect(() => {
@@ -151,6 +163,14 @@ export function Feed() {
       loadPage(1);
     }
   }, [agent, loadPage, pages]);
+
+  useEffect(() => {
+    if (agent) {
+      setPages(new Map());
+      setCurrentPage(1);
+      loadPage(1);
+    }
+  }, [feedType, agent, loadPage]);
 
   if (!isAuthenticated) {
     return (

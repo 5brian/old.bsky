@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { AuthProvider } from "@/components/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
+import { FeedProvider } from "@/components/feed-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,8 +28,10 @@ export default function RootLayout({
         className={`${inter.className} min-h-screen bg-zinc-900 text-zinc-100`}
       >
         <AuthProvider>
-          <Header />
-          {children}
+          <FeedProvider>
+            <Header />
+            {children}
+          </FeedProvider>
         </AuthProvider>
         <Analytics />
         <SpeedInsights />
