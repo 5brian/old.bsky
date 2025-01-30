@@ -67,7 +67,7 @@ export function Header() {
       /^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/;
     if (!appPasswordRegex.test(appPassword)) {
       setLoginError(
-        "This appears to be a regular password, please use an app password instead."
+        "This appears to be a regular password, please use an app password instead.",
       );
       setIsLoading(false);
       return;
@@ -78,7 +78,7 @@ export function Header() {
     } catch (error) {
       console.error("Login failed:", error);
       setLoginError(
-        "Login failed. Please check your credentials and try again."
+        "Login failed. Please check your credentials and try again.",
       );
     }
     setIsLoading(false);
@@ -147,7 +147,7 @@ export function Header() {
                     onClick={() =>
                       window.open(
                         "https://github.com/5brian/old.bsky",
-                        "_blank"
+                        "_blank",
                       )
                     }
                   >
@@ -158,7 +158,7 @@ export function Header() {
                     onClick={() =>
                       window.open(
                         "https://github.com/5brian/old.bsky/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen",
-                        "_blank"
+                        "_blank",
                       )
                     }
                   >
@@ -231,7 +231,7 @@ export function Header() {
                     onClick={() =>
                       window.open(
                         "https://github.com/5brian/old.bsky",
-                        "_blank"
+                        "_blank",
                       )
                     }
                   >
@@ -242,7 +242,7 @@ export function Header() {
                     onClick={() =>
                       window.open(
                         "https://github.com/5brian/old.bsky/issues?q=sort%3Aupdated-desc+is%3Aissue+is%3Aopen",
-                        "_blank"
+                        "_blank",
                       )
                     }
                   >
