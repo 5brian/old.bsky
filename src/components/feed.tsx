@@ -88,6 +88,7 @@ export function Feed() {
 
       let pageAlreadyExists = false;
       let prevCursor: string | undefined = undefined;
+      const additionalPostsNeeded = POSTS_PER_PAGE;
 
       setPages((oldMap) => {
         if (oldMap.has(pageNumber)) {
@@ -106,50 +107,65 @@ export function Feed() {
       }
 
       try {
+        const accumulatedPosts: AppBskyFeedDefs.FeedViewPost[] = [];
+        let currentCursor: string | undefined = prevCursor;
         let response;
-        if (feedType === "following") {
-          response = await agent.getTimeline({
-            limit: POSTS_PER_PAGE * 2,
-            cursor: pageNumber === 1 ? undefined : prevCursor,
-          });
-        } else {
-          response = await agent.app.bsky.feed.getFeed({
-            feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
-            limit: POSTS_PER_PAGE * 2,
-            cursor: pageNumber === 1 ? undefined : prevCursor,
-          });
+
+        while (accumulatedPosts.length < additionalPostsNeeded) {
+          if (feedType === "following") {
+            response = await agent.getTimeline({
+              limit: POSTS_PER_PAGE * 2,
+              cursor: currentCursor,
+            });
+          } else {
+            response = await agent.app.bsky.feed.getFeed({
+              feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
+              limit: POSTS_PER_PAGE * 2,
+              cursor: currentCursor,
+            });
+          }
+
+          if (!response.success) {
+            throw new Error("Failed to load feed");
+          }
+
+          if (!response.data.cursor) {
+            break;
+          }
+
+          const processedPosts = await Promise.all(
+            response.data.feed.map(
+              async (item: AppBskyFeedDefs.FeedViewPost) => {
+                const rec = item.post.record as AppBskyFeedPost.Record;
+                if (isReplyRecord(rec)) {
+                  return await getTopLevelPost(item);
+                }
+                return item;
+              },
+            ),
+          );
+
+          const uniquePosts = processedPosts
+            .filter(
+              (res): res is AppBskyFeedDefs.FeedViewPost =>
+                res !== null && res !== undefined,
+            )
+            .filter(
+              (p, idx, self) =>
+                idx === self.findIndex((q) => q.post.uri === p.post.uri),
+            );
+
+          accumulatedPosts.push(...uniquePosts);
+          currentCursor = response.data.cursor;
         }
 
-        if (!response.success) {
-          throw new Error("Failed to load feed");
-        }
-
-        const processedPosts = await Promise.all(
-          response.data.feed.map(async (item: AppBskyFeedDefs.FeedViewPost) => {
-            const rec = item.post.record as AppBskyFeedPost.Record;
-            if (isReplyRecord(rec)) {
-              return await getTopLevelPost(item);
-            }
-            return item;
-          }),
-        );
-
-        const uniquePosts = processedPosts
-          .filter(
-            (res): res is AppBskyFeedDefs.FeedViewPost =>
-              res !== null && res !== undefined,
-          )
-          .filter(
-            (p, idx, self) =>
-              idx === self.findIndex((q) => q.post.uri === p.post.uri),
-          )
-          .slice(0, POSTS_PER_PAGE);
+        const finalPosts = accumulatedPosts.slice(0, additionalPostsNeeded);
 
         setPages((oldMap) => {
           const newMap = new Map(oldMap);
           newMap.set(pageNumber, {
-            posts: uniquePosts,
-            cursor: response.data.cursor,
+            posts: finalPosts,
+            cursor: currentCursor,
           });
           return newMap;
         });
