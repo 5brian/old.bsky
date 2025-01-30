@@ -43,7 +43,7 @@ export function Feed() {
 
   const getTopLevelPost = useCallback(
     async (
-      post: AppBskyFeedDefs.FeedViewPost,
+      post: AppBskyFeedDefs.FeedViewPost
     ): Promise<AppBskyFeedDefs.FeedViewPost | null> => {
       if (!agent) return null;
 
@@ -80,7 +80,7 @@ export function Feed() {
         return null;
       }
     },
-    [agent],
+    [agent]
   );
 
   const loadPage = useCallback(
@@ -121,16 +121,16 @@ export function Feed() {
                 return topLevelPost;
               }
               return post;
-            }),
+            })
           );
 
           const uniquePosts = processedPosts
             .filter(
-              (post): post is AppBskyFeedDefs.FeedViewPost => post !== null,
+              (post): post is AppBskyFeedDefs.FeedViewPost => post !== null
             )
             .filter(
               (post, index, self) =>
-                index === self.findIndex((p) => p.post.uri === post.post.uri),
+                index === self.findIndex((p) => p.post.uri === post.post.uri)
             )
             .slice(0, POSTS_PER_PAGE);
 
@@ -151,7 +151,7 @@ export function Feed() {
         setIsLoading(false);
       }
     },
-    [agent, isLoading, pages, getTopLevelPost, feedType],
+    [agent, isLoading, pages, getTopLevelPost, feedType]
   );
 
   useLayoutEffect(() => {
@@ -166,11 +166,14 @@ export function Feed() {
 
   useEffect(() => {
     if (agent) {
-      setPages(new Map());
-      setCurrentPage(1);
-      loadPage(1);
+      const resetFeed = async () => {
+        setPages(new Map());
+        setCurrentPage(1);
+        await loadPage(1);
+      };
+      resetFeed();
     }
-  }, [feedType, agent, loadPage]);
+  }, [feedType, agent]);
 
   if (!isAuthenticated) {
     return (
