@@ -5,6 +5,7 @@ import React, {
   useState,
   useCallback,
   useLayoutEffect,
+  useRef,
 } from "react";
 import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -36,6 +37,9 @@ export function Feed() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  // Initialize a ref to store seen URIs
+  const seenUrisRef = useRef<Set<string>>(new Set());
 
   const getTopLevelPost = useCallback(
     async (
@@ -150,15 +154,21 @@ export function Feed() {
               (res): res is AppBskyFeedDefs.FeedViewPost =>
                 res !== null && res !== undefined,
             )
-            .filter(
-              (p, idx, self) =>
-                idx === self.findIndex((q) => q.post.uri === p.post.uri),
-            );
+            // Filter out posts that have already been seen
+            .filter((p) => {
+              if (seenUrisRef.current.has(p.post.uri)) {
+                return false;
+              } else {
+                seenUrisRef.current.add(p.post.uri);
+                return true;
+              }
+            });
 
           accumulatedPosts.push(...uniquePosts);
           currentCursor = response.data.cursor;
         }
 
+        // Slice to ensure only POSTS_PER_PAGE are added
         const finalPosts = accumulatedPosts.slice(0, additionalPostsNeeded);
 
         setPages((oldMap) => {
@@ -187,6 +197,8 @@ export function Feed() {
   useEffect(() => {
     if (!agent) return;
     (async () => {
+      // Reset seen URIs when feed type changes
+      seenUrisRef.current.clear();
       setPages(new Map());
       setCurrentPage(1);
       await loadPage(1);
