@@ -100,8 +100,8 @@ export function Thread() {
   if (!isThreadVisible || !activeThread) return null;
 
   return (
-    <div className="h-[calc(100vh-64px)] overflow-y-auto">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-800 bg-zinc-900 p-4">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 p-4">
         <h2 className="text-lg font-semibold">Thread</h2>
         <Button
           variant="ghost"
@@ -115,22 +115,24 @@ export function Thread() {
         </Button>
       </div>
 
-      <div className="p-4 space-y-4">
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : (
-          <>
-            {parentPosts.map((post) => (
-              <ThreadReplyPost key={post.post.uri} post={post} />
-            ))}
-            <ThreadMainPost post={activeThread} />
-            {replyPosts.map((post) => (
-              <ThreadReplyPost key={post.post.uri} post={post} />
-            ))}
-          </>
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {parentPosts.map((post) => (
+                <ThreadReplyPost key={post.post.uri} post={post} />
+              ))}
+              <ThreadMainPost post={activeThread} />
+              {replyPosts.map((post) => (
+                <ThreadReplyPost key={post.post.uri} post={post} />
+              ))}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

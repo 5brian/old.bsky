@@ -13,7 +13,7 @@ export default function Home() {
       <div
         className={`flex-1 transition-all duration-200 ${
           isThreadVisible ? "w-1/2" : "w-full"
-        }`}
+        } h-[calc(100vh-64px)] overflow-y-auto`}
       >
         <main className="container mx-auto grid grid-cols-1 gap-4 p-4 md:grid-cols-4">
           <div
@@ -30,7 +30,7 @@ export default function Home() {
       </div>
 
       {isThreadVisible && (
-        <div className="w-1/2 border-l border-zinc-800">
+        <div className="w-1/2 border-l border-zinc-800 h-[calc(100vh-64px)] overflow-hidden">
           <Thread />
         </div>
       )}
