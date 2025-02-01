@@ -40,7 +40,7 @@ export function PostVotes({ post, compact }: PostVotesProps) {
     <div
       className={cn(
         "flex flex-col items-center p-2 text-zinc-400",
-        compact && "p-1",
+        compact && "-space-y-3",
       )}
     >
       <Button
@@ -51,7 +51,7 @@ export function PostVotes({ post, compact }: PostVotesProps) {
       >
         <ArrowUp className="h-4 w-4" />
       </Button>
-      <span className="text-xs font-medium">{likeCount}</span>
+      {!compact && <span className="text-xs font-medium">{likeCount}</span>}
       <Button variant="ghost" size="sm" className="p-0">
         <ArrowDown className="h-4 w-4" />
       </Button>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { PostCommentBox } from "@/components/post-card/post-comment-box";
 
 interface ThreadReplyPostProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -33,6 +34,12 @@ export function ThreadReplyPost({
   const [repostUri, setRepostUri] = useState<string | undefined>(
     post.post.viewer?.repost,
   );
+  const [commentState, setCommentState] = useState({
+    isVisible: false,
+    count: post.post.replyCount || 0,
+    hasCommented: false,
+    isPosted: false,
+  });
 
   const handleRepost = async () => {
     if (!agent) return;
@@ -59,6 +66,24 @@ export function ThreadReplyPost({
     return `https://bsky.app/profile/${handle}/post/${rkey}`;
   };
 
+  const toggleCommentBox = () => {
+    setCommentState((prev) => ({
+      ...prev,
+      isVisible: !prev.isVisible,
+      isPosted: prev.isVisible ? false : prev.isPosted, // Reset posted state when opening
+    }));
+  };
+
+  const handleCommentPost = () => {
+    setCommentState((prev) => ({
+      ...prev,
+      count: prev.count + 1,
+      hasCommented: true,
+      isPosted: true,
+      isVisible: false,
+    }));
+  };
+
   return (
     <Card
       className={cn("bg-zinc-800 border-zinc-700 text-sm", {
@@ -71,6 +96,19 @@ export function ThreadReplyPost({
           <PostContent post={post} />
           <PostMeta post={post} />
           <div className="flex space-x-4 text-zinc-400 text-xs mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "p-0 text-xs hover:text-zinc-300 hover:underline",
+                (commentState.hasCommented || commentState.isPosted) &&
+                  "text-blue-500 hover:text-blue-400",
+              )}
+              onClick={toggleCommentBox}
+            >
+              {commentState.count}{" "}
+              {commentState.count === 1 ? "comment" : "comments"}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -101,6 +139,21 @@ export function ThreadReplyPost({
               </Button>
             )}
           </div>
+
+          {commentState.isVisible && (
+            <PostCommentBox
+              post={post}
+              hasCommented={commentState.hasCommented}
+              commentPosted={commentState.isPosted}
+              onCommentPost={handleCommentPost}
+              onCancel={() =>
+                setCommentState((prev) => ({
+                  ...prev,
+                  isVisible: false,
+                }))
+              }
+            />
+          )}
         </div>
       </div>
     </Card>
