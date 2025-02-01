@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { PostVotes } from "@/components/post-card/post-votes";
 import { PostContent } from "@/components/post-card/post-content";
-import { PostMeta } from "@/components/post-card/post-meta";
 import { Button } from "@/components/ui/button";
+import { formatDistanceToNowStrict } from "date-fns";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -93,8 +93,27 @@ export function ThreadReplyPost({
       <div className="flex">
         <PostVotes post={post} compact />
         <div className="flex-1 p-2">
+          <div className="text-xs text-zinc-400 mb-2">
+            [–]{" "}
+            <Button
+              variant="ghost"
+              className="p-0 h-auto text-xs text-zinc-100 hover:text-zinc-300 hover:underline"
+              onClick={() =>
+                window.open(
+                  `https://bsky.app/profile/${post.post.author.handle}`,
+                  "_blank",
+                )
+              }
+            >
+              {post.post.author.handle}
+            </Button>{" "}
+            {post.post.likeCount} points{" "}
+            {formatDistanceToNowStrict(new Date(post.post.indexedAt), {
+              addSuffix: true,
+            })}
+          </div>
+
           <PostContent post={post} />
-          <PostMeta post={post} />
           <div className="flex space-x-4 text-zinc-400 text-xs mt-2">
             <Button
               variant="ghost"
