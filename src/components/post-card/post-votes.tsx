@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { useAuth } from "@/components/auth/auth-provider";
+import { cn } from "@/lib/utils";
 
 interface PostVotesProps {
   post: AppBskyFeedDefs.FeedViewPost;
+  compact?: boolean;
 }
 
-export function PostVotes({ post }: PostVotesProps) {
+export function PostVotes({ post, compact }: PostVotesProps) {
   const { agent } = useAuth();
   const viewer = post.post.viewer;
   const [isLiked, setIsLiked] = useState(viewer?.like !== undefined);
@@ -35,7 +37,12 @@ export function PostVotes({ post }: PostVotesProps) {
   };
 
   return (
-    <div className="flex flex-col items-center p-2 text-zinc-400">
+    <div
+      className={cn(
+        "flex flex-col items-center p-2 text-zinc-400",
+        compact && "p-1",
+      )}
+    >
       <Button
         variant="ghost"
         size="sm"

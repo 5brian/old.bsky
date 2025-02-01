@@ -6,6 +6,8 @@ import { Header } from "@/components/header";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { FeedProvider } from "@/components/feed/feed-provider";
+import { ThreadProvider } from "@/components/thread/thread-provider";
+import { Thread } from "@/components/thread/thread";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,8 +31,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <FeedProvider>
-            <Header />
-            {children}
+            <ThreadProvider>
+              <Header />
+              {children}
+              <Thread />
+            </ThreadProvider>
           </FeedProvider>
         </AuthProvider>
         <Analytics />
