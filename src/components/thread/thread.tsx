@@ -200,7 +200,9 @@ export function Thread() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 p-4">
-        <h2 className="text-lg font-semibold">Thread</h2>
+        <h2 className="text-lg font-semibold">
+          @{activeThread?.post.author.handle}&apos;s post
+        </h2>
         <Button
           variant="ghost"
           size="icon"
