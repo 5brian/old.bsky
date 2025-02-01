@@ -13,19 +13,21 @@ export default function Home() {
       <div
         className={`flex-1 transition-all duration-200 ${
           isThreadVisible ? "w-1/2" : "w-full"
-        } h-[calc(100vh-64px)] overflow-y-auto`}
+        } h-[calc(100vh-64px)] overflow-hidden`}
       >
-        <main className="container mx-auto grid grid-cols-1 gap-4 p-4 md:grid-cols-4">
-          <div
-            className={`${isThreadVisible ? "md:col-span-4" : "md:col-span-3"}`}
-          >
-            <Feed />
-          </div>
-          {!isThreadVisible && (
-            <div className="md:col-span-1">
-              <Sidebar />
+        <main className="container mx-auto h-full overflow-y-auto">
+          <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-4">
+            <div
+              className={`${isThreadVisible ? "md:col-span-4" : "md:col-span-3"}`}
+            >
+              <Feed />
             </div>
-          )}
+            {!isThreadVisible && (
+              <div className="md:col-span-1">
+                <Sidebar />
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
