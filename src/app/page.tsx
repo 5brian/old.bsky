@@ -2,25 +2,38 @@
 
 import { Feed } from "@/components/feed/feed";
 import { Sidebar } from "@/components/sidebar";
+import { Thread } from "@/components/thread/thread";
 import { useThread } from "@/components/thread/thread-provider";
-import { cn } from "@/lib/utils";
 
 export default function Home() {
   const { isThreadVisible } = useThread();
 
   return (
-    <main
-      className={cn(
-        "container mx-auto grid grid-cols-1 gap-4 p-4 md:grid-cols-4",
-        isThreadVisible && "mr-[400px]",
+    <>
+      <div
+        className={`flex-1 transition-all duration-200 ${
+          isThreadVisible ? "w-1/2" : "w-full"
+        }`}
+      >
+        <main className="container mx-auto grid grid-cols-1 gap-4 p-4 md:grid-cols-4">
+          <div
+            className={`${isThreadVisible ? "md:col-span-4" : "md:col-span-3"}`}
+          >
+            <Feed />
+          </div>
+          {!isThreadVisible && (
+            <div className="md:col-span-1">
+              <Sidebar />
+            </div>
+          )}
+        </main>
+      </div>
+
+      {isThreadVisible && (
+        <div className="w-1/2 border-l border-zinc-800">
+          <Thread />
+        </div>
       )}
-    >
-      <div className="md:col-span-3">
-        <Feed />
-      </div>
-      <div className="md:col-span-1">
-        <Sidebar />
-      </div>
-    </main>
+    </>
   );
 }

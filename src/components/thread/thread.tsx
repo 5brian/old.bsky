@@ -1,7 +1,6 @@
 "use client";
 
 import { useThread } from "./thread-provider";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -101,7 +100,7 @@ export function Thread() {
   if (!isThreadVisible || !activeThread) return null;
 
   return (
-    <Card className="fixed right-0 top-0 h-screen w-[400px] overflow-y-auto bg-zinc-900 border-l border-zinc-800">
+    <div className="h-[calc(100vh-64px)] overflow-y-auto">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-800 bg-zinc-900 p-4">
         <h2 className="text-lg font-semibold">Thread</h2>
         <Button
@@ -133,6 +132,6 @@ export function Thread() {
           </>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
