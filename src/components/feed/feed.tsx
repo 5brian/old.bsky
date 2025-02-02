@@ -30,6 +30,7 @@ function isReplyRecord(record: unknown): record is AppBskyFeedPost.Record {
 }
 
 export function Feed() {
+  const feedContainerRef = useRef<HTMLDivElement>(null);
   const { feedType } = useFeed();
   const { agent, isAuthenticated } = useAuth();
 
@@ -191,7 +192,13 @@ export function Feed() {
   );
 
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (feedContainerRef.current) {
+      const scrollableParent =
+        feedContainerRef.current.closest(".overflow-y-auto");
+      if (scrollableParent) {
+        scrollableParent.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
   }, [currentPage]);
 
   useEffect(() => {
@@ -228,7 +235,7 @@ export function Feed() {
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={feedContainerRef} className="space-y-4">
       {isLoading && !currentPageData ? (
         <div className="flex justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin" />

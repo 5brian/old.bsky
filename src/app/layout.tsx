@@ -6,6 +6,7 @@ import { Header } from "@/components/header";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { FeedProvider } from "@/components/feed/feed-provider";
+import { ThreadProvider } from "@/components/thread/thread-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,8 +30,10 @@ export default function RootLayout({
       >
         <AuthProvider>
           <FeedProvider>
-            <Header />
-            {children}
+            <ThreadProvider>
+              <Header />
+              <div className="flex">{children}</div>
+            </ThreadProvider>
           </FeedProvider>
         </AuthProvider>
         <Analytics />

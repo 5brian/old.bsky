@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
+import { useThread } from "@/components/thread/thread-provider";
 
 interface PostActionsProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -20,6 +21,7 @@ export function PostActions({
   onCommentClick,
 }: PostActionsProps) {
   const { agent } = useAuth();
+  const { setActiveThread, setThreadVisible } = useThread();
   const viewer = post.post.viewer;
   const [isReposted, setIsReposted] = useState(viewer?.repost !== undefined);
   const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
@@ -52,6 +54,11 @@ export function PostActions({
     return `https://bsky.app/profile/${handle}/post/${rkey}`;
   };
 
+  const handleThreadClick = () => {
+    setActiveThread(post);
+    setThreadVisible(true);
+  };
+
   return (
     <div className="flex space-x-4 text-zinc-400 text-sm mt-2">
       <Button
@@ -76,6 +83,14 @@ export function PostActions({
         onClick={handleRepost}
       >
         {repostCount} {repostCount === 1 ? "repost" : "reposts"}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="p-0 text-sm hover:text-zinc-300 hover:underline"
+        onClick={handleThreadClick}
+      >
+        thread
       </Button>
       <Button
         variant="ghost"
