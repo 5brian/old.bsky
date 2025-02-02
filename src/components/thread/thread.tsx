@@ -60,6 +60,7 @@ export function Thread() {
   >([]);
   const [replyPosts, setReplyPosts] = useState<ThreadPost[]>([]);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [collapsedPosts, setCollapsedPosts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -146,6 +147,18 @@ export function Thread() {
     }
   };
 
+  const toggleReplies = (postUri: string) => {
+    setCollapsedPosts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(postUri)) {
+        newSet.delete(postUri);
+      } else {
+        newSet.add(postUri);
+      }
+      return newSet;
+    });
+  };
+
   const assignDepth = (posts: ThreadPost[], depth = 0): ThreadPost[] => {
     return posts.map((post) => ({
       ...post,
@@ -183,6 +196,7 @@ export function Thread() {
 
             setParentPosts(parents);
             setReplyPosts(processedReplies);
+            setCollapsedPosts(new Set());
 
             // Auto-expand replies up to two levels deep
             await autoExpandReplies(processedReplies);
@@ -215,10 +229,19 @@ export function Thread() {
               post={convertToFeedViewPost(reply.post)}
               depth={reply.depth}
               hasMoreReplies={!!reply.replies?.length}
-              isExpanded={expandedPosts.has(reply.post.uri)}
-              onExpand={() => handleExpandReplies(reply.post.uri)}
+              isExpanded={!collapsedPosts.has(reply.post.uri)}
+              onExpand={() => {
+                if (collapsedPosts.has(reply.post.uri)) {
+                  toggleReplies(reply.post.uri);
+                } else if (!expandedPosts.has(reply.post.uri)) {
+                  handleExpandReplies(reply.post.uri);
+                } else {
+                  toggleReplies(reply.post.uri);
+                }
+              }}
             />
-            {expandedPosts.has(reply.post.uri) && renderReplies(reply.replies)}
+            {!collapsedPosts.has(reply.post.uri) &&
+              renderReplies(reply.replies)}
           </div>
         ))}
         {replies.length > paginatedReplies.length && (

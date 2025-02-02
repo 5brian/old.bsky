@@ -70,7 +70,7 @@ export function ThreadReplyPost({
     setCommentState((prev) => ({
       ...prev,
       isVisible: !prev.isVisible,
-      isPosted: prev.isVisible ? false : prev.isPosted, // Reset posted state when opening
+      isPosted: prev.isVisible ? false : prev.isPosted,
     }));
   };
 
@@ -94,7 +94,16 @@ export function ThreadReplyPost({
         <PostVotes post={post} compact />
         <div className="flex-1 p-2">
           <div className="text-xs text-zinc-400 mb-2">
-            [–]{" "}
+            {hasMoreReplies && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-0 h-auto text-xs hover:text-zinc-300"
+                onClick={onExpand}
+              >
+                [{isExpanded ? "-" : "+"}]
+              </Button>
+            )}{" "}
             <Button
               variant="ghost"
               className="p-0 h-auto text-xs text-zinc-100 hover:text-zinc-300 hover:underline"
@@ -147,16 +156,6 @@ export function ThreadReplyPost({
             >
               source
             </Button>
-            {hasMoreReplies && !isExpanded && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-0 text-xs hover:text-zinc-300 hover:underline"
-                onClick={onExpand}
-              >
-                [+]
-              </Button>
-            )}
           </div>
 
           {commentState.isVisible && (
