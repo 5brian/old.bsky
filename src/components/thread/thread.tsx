@@ -63,6 +63,65 @@ export function Thread() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const updateRepliesInThread = (
+    posts: ThreadPost[],
+    parentUri: string,
+    newReplies?: ThreadPost[],
+  ): ThreadPost[] => {
+    return posts.map((post) => {
+      if (post.post.uri === parentUri) {
+        return {
+          ...post,
+          replies: newReplies ? sortByLikes(newReplies) : undefined,
+        };
+      }
+      if (post.replies) {
+        return {
+          ...post,
+          replies: updateRepliesInThread(post.replies, parentUri, newReplies),
+        };
+      }
+      return post;
+    });
+  };
+
+  const autoExpandReplies = async (replies: ThreadPost[], currentDepth = 0) => {
+    if (!agent || currentDepth >= 2) return;
+
+    for (const reply of replies) {
+      if (reply.replies?.length) {
+        setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
+
+        try {
+          const response = await agent.getPostThread({
+            uri: reply.post.uri,
+            depth: MAX_VISIBLE_DEPTH,
+          });
+
+          if (response.success && isThreadViewPost(response.data.thread)) {
+            const newReplies = response.data.thread.replies;
+            if (
+              Array.isArray(newReplies) &&
+              newReplies.every(isThreadViewPost)
+            ) {
+              setReplyPosts((prevPosts) =>
+                updateRepliesInThread(
+                  prevPosts,
+                  reply.post.uri,
+                  sortByLikes(newReplies),
+                ),
+              );
+
+              await autoExpandReplies(newReplies, currentDepth + 1);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to auto-expand replies:", error);
+        }
+      }
+    }
+  };
+
   const handleExpandReplies = async (postUri: string) => {
     if (!agent) return;
 
@@ -85,28 +144,6 @@ export function Thread() {
     } catch (error) {
       console.error("Failed to load more replies:", error);
     }
-  };
-
-  const updateRepliesInThread = (
-    posts: ThreadPost[],
-    parentUri: string,
-    newReplies?: ThreadPost[],
-  ): ThreadPost[] => {
-    return posts.map((post) => {
-      if (post.post.uri === parentUri) {
-        return {
-          ...post,
-          replies: newReplies ? sortByLikes(newReplies) : undefined,
-        };
-      }
-      if (post.replies) {
-        return {
-          ...post,
-          replies: updateRepliesInThread(post.replies, parentUri, newReplies),
-        };
-      }
-      return post;
-    });
   };
 
   const assignDepth = (posts: ThreadPost[], depth = 0): ThreadPost[] => {
@@ -146,6 +183,9 @@ export function Thread() {
 
             setParentPosts(parents);
             setReplyPosts(processedReplies);
+
+            // Auto-expand replies up to two levels deep
+            await autoExpandReplies(processedReplies);
           }
         }
       } catch (error) {
