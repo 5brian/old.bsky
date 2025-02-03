@@ -5,14 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/context/auth-provider";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 
 export function Sidebar() {
   const { agent, isAuthenticated } = useAuth();

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import type { AppBskyFeedDefs } from "@atproto/api";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/context/auth-provider";
 import { cn } from "@/lib/utils";
 
 interface PostVotesProps {

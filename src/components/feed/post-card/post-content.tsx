@@ -1,7 +1,7 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Button } from "@/components/ui/button";
-import { usePostTypes } from "@/components/post-card/use-post-types";
-import { useRichText } from "@/components/post-card/use-rich-text";
+import { usePostTypes } from "@/components/feed/post-card/use-post-types";
+import { useRichText } from "@/components/hooks/use-rich-text";
 
 interface PostContentProps {
   post: AppBskyFeedDefs.FeedViewPost;

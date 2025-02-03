@@ -1,14 +1,14 @@
 "use client";
 
-import { useThread } from "./thread-provider";
+import { useThread } from "../context/thread-provider";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/context/auth-provider";
 import { useEffect, useState } from "react";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Loader2 } from "lucide-react";
-import { ThreadMainPost } from "./thread-main-post";
-import { ThreadReplyPost } from "./thread-reply-post";
+import { ThreadMainPost } from "./thread-post";
+import { ThreadReplyPost } from "./thread-reply";
 
 interface ThreadPost extends AppBskyFeedDefs.ThreadViewPost {
   $type: string;

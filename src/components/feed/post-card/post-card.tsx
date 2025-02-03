@@ -1,10 +1,10 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Card } from "@/components/ui/card";
-import { PostVotes } from "@/components/post-card/post-votes";
-import { PostContent } from "@/components/post-card/post-content";
-import { PostMeta } from "@/components/post-card/post-meta";
-import { PostActions } from "@/components/post-card/post-actions";
-import { PostCommentBox } from "@/components/post-card/post-comment-box";
+import { PostVotes } from "@/components/feed/post-card/post-votes";
+import { PostContent } from "@/components/feed/post-card/post-content";
+import { PostMeta } from "@/components/feed/post-card/post-meta";
+import { PostActions } from "@/components/feed/post-card/post-actions";
+import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
 import { useState } from "react";
 
 interface PostCardProps {

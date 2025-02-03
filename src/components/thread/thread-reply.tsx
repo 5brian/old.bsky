@@ -2,14 +2,14 @@
 
 import { Card } from "@/components/ui/card";
 import type { AppBskyFeedDefs } from "@atproto/api";
-import { PostVotes } from "@/components/post-card/post-votes";
-import { PostContent } from "@/components/post-card/post-content";
+import { PostVotes } from "@/components/feed/post-card/post-votes";
+import { PostContent } from "@/components/feed/post-card/post-content";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNowStrict } from "date-fns";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/context/auth-provider";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { PostCommentBox } from "@/components/post-card/post-comment-box";
+import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
 
 interface ThreadReplyPostProps {
   post: AppBskyFeedDefs.FeedViewPost;

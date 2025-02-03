@@ -1,12 +1,12 @@
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
-import { Header } from "@/components/header";
-import { AuthProvider } from "@/components/auth/auth-provider";
+import "@/components/styles/globals.css";
+import { Header } from "@/components/header/header";
+import { AuthProvider } from "@/components/context/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
-import { FeedProvider } from "@/components/feed/feed-provider";
-import { ThreadProvider } from "@/components/thread/thread-provider";
+import { FeedProvider } from "@/components/context/feed-provider";
+import { ThreadProvider } from "@/components/context/thread-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 

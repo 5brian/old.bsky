@@ -1,9 +1,9 @@
 "use client";
 
 import { Feed } from "@/components/feed/feed";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/sidebar/sidebar";
 import { Thread } from "@/components/thread/thread";
-import { useThread } from "@/components/thread/thread-provider";
+import { useThread } from "@/components/context/thread-provider";
 
 export default function Home() {
   const { isThreadVisible } = useThread();

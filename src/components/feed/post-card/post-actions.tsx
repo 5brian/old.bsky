@@ -1,9 +1,9 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/context/auth-provider";
 import { cn } from "@/lib/utils";
-import { useThread } from "@/components/thread/thread-provider";
+import { useThread } from "@/components/context/thread-provider";
 
 interface PostActionsProps {
   post: AppBskyFeedDefs.FeedViewPost;
