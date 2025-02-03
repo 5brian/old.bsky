@@ -1,9 +1,9 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { useAuth } from "@/components/context/auth-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/typescript";
 import { useThread } from "@/components/context/thread-provider";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { getPostUrl } from "@/lib/post";
 
 interface PostActionsProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -20,39 +20,8 @@ export function PostActions({
   commentPosted,
   onCommentClick,
 }: PostActionsProps) {
-  const { agent } = useAuth();
   const { setActiveThread, setThreadVisible } = useThread();
-  const viewer = post.post.viewer;
-  const [isReposted, setIsReposted] = useState(viewer?.repost !== undefined);
-  const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
-  const [repostUri, setRepostUri] = useState<string | undefined>(
-    viewer?.repost,
-  );
-
-  const handleRepost = async () => {
-    if (!agent) return;
-    try {
-      if (!isReposted) {
-        const response = await agent.repost(post.post.uri, post.post.cid);
-        setRepostUri(response.uri);
-        setIsReposted(true);
-        setRepostCount((prev) => prev + 1);
-      } else if (repostUri) {
-        await agent.deleteRepost(repostUri);
-        setRepostUri(undefined);
-        setIsReposted(false);
-        setRepostCount((prev) => prev - 1);
-      }
-    } catch (error) {
-      console.error("Failed to repost/unrepost:", error);
-    }
-  };
-
-  const getPostUrl = () => {
-    const handle = post.post.author.handle;
-    const rkey = post.post.uri.split("/").pop();
-    return `https://bsky.app/profile/${handle}/post/${rkey}`;
-  };
+  const { isReposted, repostCount, handleRepost } = usePostInteractions(post);
 
   const handleThreadClick = () => {
     setActiveThread(post);
@@ -96,7 +65,7 @@ export function PostActions({
         variant="ghost"
         size="sm"
         className="p-0 text-sm hover:text-zinc-300 hover:underline"
-        onClick={() => window.open(getPostUrl(), "_blank")}
+        onClick={() => window.open(getPostUrl(post), "_blank")}
       >
         source
       </Button>

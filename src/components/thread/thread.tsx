@@ -1,222 +1,41 @@
 "use client";
 
-import { useThread } from "../context/thread-provider";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import { useAuth } from "@/components/context/auth-provider";
-import { useEffect, useState } from "react";
-import type { AppBskyFeedDefs } from "@atproto/api";
-import { Loader2 } from "lucide-react";
+import { useThread as useThreadContext } from "@/components/context/thread-provider";
+import { Button } from "@/components/ui/button";
+import { X, Loader2 } from "lucide-react";
 import { ThreadMainPost } from "./thread-post";
 import { ThreadReplyPost } from "./thread-reply";
-
-interface ThreadPost extends AppBskyFeedDefs.ThreadViewPost {
-  $type: string;
-  replies?: ThreadPost[];
-  depth?: number;
-}
-
-interface ThreadViewRecord {
-  $type: string;
-  post: AppBskyFeedDefs.PostView;
-  parent?: ThreadPost;
-  replies?: ThreadPost[];
-}
-
-const MAX_VISIBLE_DEPTH = 2;
-const POSTS_PER_PAGE = 20;
-
-function isThreadViewPost(post: unknown): post is ThreadPost {
-  if (!post || typeof post !== "object") return false;
-  const record = post as ThreadViewRecord;
-  return (
-    record.$type === "app.bsky.feed.defs#threadViewPost" && "post" in record
-  );
-}
-
-function convertToFeedViewPost(
-  post: AppBskyFeedDefs.PostView,
-): AppBskyFeedDefs.FeedViewPost {
-  return {
-    post,
-    reason: undefined,
-  };
-}
-
-function sortByLikes(posts: ThreadPost[]) {
-  return [...posts].sort((a, b) => {
-    const likesA = a.post.likeCount || 0;
-    const likesB = b.post.likeCount || 0;
-    return likesB - likesA;
-  });
-}
+import { useThread } from "@/hooks/use-thread";
+import { useEffect } from "react";
 
 export function Thread() {
   const { activeThread, isThreadVisible, setThreadVisible, setActiveThread } =
-    useThread();
+    useThreadContext();
   const { agent } = useAuth();
-  const [parentPosts, setParentPosts] = useState<
-    AppBskyFeedDefs.FeedViewPost[]
-  >([]);
-  const [replyPosts, setReplyPosts] = useState<ThreadPost[]>([]);
-  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
-  const [collapsedPosts, setCollapsedPosts] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
-  const updateRepliesInThread = (
-    posts: ThreadPost[],
-    parentUri: string,
-    newReplies?: ThreadPost[],
-  ): ThreadPost[] => {
-    return posts.map((post) => {
-      if (post.post.uri === parentUri) {
-        return {
-          ...post,
-          replies: newReplies ? sortByLikes(newReplies) : undefined,
-        };
-      }
-      if (post.replies) {
-        return {
-          ...post,
-          replies: updateRepliesInThread(post.replies, parentUri, newReplies),
-        };
-      }
-      return post;
-    });
-  };
-
-  const autoExpandReplies = async (replies: ThreadPost[], currentDepth = 0) => {
-    if (!agent || currentDepth >= 2) return;
-
-    for (const reply of replies) {
-      if (reply.replies?.length) {
-        setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
-
-        try {
-          const response = await agent.getPostThread({
-            uri: reply.post.uri,
-            depth: MAX_VISIBLE_DEPTH,
-          });
-
-          if (response.success && isThreadViewPost(response.data.thread)) {
-            const newReplies = response.data.thread.replies;
-            if (
-              Array.isArray(newReplies) &&
-              newReplies.every(isThreadViewPost)
-            ) {
-              setReplyPosts((prevPosts) =>
-                updateRepliesInThread(
-                  prevPosts,
-                  reply.post.uri,
-                  sortByLikes(newReplies),
-                ),
-              );
-
-              await autoExpandReplies(newReplies, currentDepth + 1);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to auto-expand replies:", error);
-        }
-      }
-    }
-  };
-
-  const handleExpandReplies = async (postUri: string) => {
-    if (!agent) return;
-
-    try {
-      const response = await agent.getPostThread({
-        uri: postUri,
-        depth: MAX_VISIBLE_DEPTH,
-      });
-
-      if (response.success && isThreadViewPost(response.data.thread)) {
-        setExpandedPosts((prev) => new Set([...prev, postUri]));
-
-        const replies = response.data.thread.replies;
-        if (Array.isArray(replies) && replies.every(isThreadViewPost)) {
-          setReplyPosts((prevPosts) =>
-            updateRepliesInThread(prevPosts, postUri, replies),
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load more replies:", error);
-    }
-  };
-
-  const toggleReplies = (postUri: string) => {
-    setCollapsedPosts((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(postUri)) {
-        newSet.delete(postUri);
-      } else {
-        newSet.add(postUri);
-      }
-      return newSet;
-    });
-  };
-
-  const assignDepth = (posts: ThreadPost[], depth = 0): ThreadPost[] => {
-    return posts.map((post) => ({
-      ...post,
-      depth,
-      replies: post.replies ? assignDepth(post.replies, depth + 1) : undefined,
-    }));
-  };
+  const {
+    parentPosts,
+    replyPosts,
+    expandedPosts,
+    collapsedPosts,
+    isLoading,
+    error,
+    currentPage,
+    POSTS_PER_PAGE,
+    handleExpandReplies,
+    toggleReplies,
+    loadThread,
+    loadMoreReplies,
+  } = useThread(agent);
 
   useEffect(() => {
-    const loadThread = async () => {
-      if (!agent || !activeThread) return;
-
-      setIsLoading(true);
-      try {
-        const response = await agent.getPostThread({
-          uri: activeThread.post.uri,
-          depth: MAX_VISIBLE_DEPTH,
-        });
-
-        if (response.success) {
-          const parents: AppBskyFeedDefs.FeedViewPost[] = [];
-          const thread = response.data.thread;
-
-          if (isThreadViewPost(thread)) {
-            // Get parent posts
-            let currentParent = thread.parent;
-            while (currentParent && isThreadViewPost(currentParent)) {
-              parents.unshift(convertToFeedViewPost(currentParent.post));
-              currentParent = currentParent.parent;
-            }
-
-            // Process replies with depth
-            const replies = thread.replies || [];
-            const processedReplies = assignDepth(sortByLikes(replies));
-
-            setParentPosts(parents);
-            setReplyPosts(processedReplies);
-            setCollapsedPosts(new Set());
-
-            // Auto-expand replies up to two levels deep
-            await autoExpandReplies(processedReplies);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load thread:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (activeThread) {
-      loadThread();
-      setExpandedPosts(new Set());
-      setCurrentPage(1);
+    if (activeThread && agent) {
+      loadThread(activeThread.post.uri);
     }
-  }, [agent, activeThread]);
+  }, [activeThread, agent, loadThread]);
 
-  const renderReplies = (replies?: ThreadPost[]) => {
+  const renderReplies = (replies?: typeof replyPosts) => {
     if (!replies) return null;
 
     const paginatedReplies = replies.slice(0, currentPage * POSTS_PER_PAGE);
@@ -226,7 +45,10 @@ export function Thread() {
         {paginatedReplies.map((reply) => (
           <div key={reply.post.uri}>
             <ThreadReplyPost
-              post={convertToFeedViewPost(reply.post)}
+              post={{
+                post: reply.post,
+                reason: undefined,
+              }}
               depth={reply.depth}
               hasMoreReplies={!!reply.replies?.length}
               isExpanded={!collapsedPosts.has(reply.post.uri)}
@@ -248,7 +70,7 @@ export function Thread() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCurrentPage(currentPage + 1)}
+            onClick={loadMoreReplies}
             className="ml-2 text-zinc-400"
           >
             load more replies
@@ -284,6 +106,8 @@ export function Thread() {
             <div className="flex justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
+          ) : error ? (
+            <div className="text-center text-red-500">{error}</div>
           ) : (
             <>
               {parentPosts.map((post) => (

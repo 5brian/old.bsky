@@ -1,194 +1,21 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-} from "react";
-import type { AppBskyFeedDefs, AppBskyFeedPost } from "@atproto/api";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useAuth } from "@/components/context/auth-provider";
-import { useFeed } from "@/components/context/feed-provider";
+import { useFeed } from "@/hooks/use-feed";
 import { PostCard } from "@/components/feed/post-card/post-card";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const POSTS_PER_PAGE = 20;
-
-type PageData = {
-  posts: AppBskyFeedDefs.FeedViewPost[];
-  cursor: string | undefined;
-};
-
-function isReplyRecord(record: unknown): record is AppBskyFeedPost.Record {
-  if (!record || typeof record !== "object") return false;
-  const maybeReply = record as { reply?: { parent?: { uri?: string } } };
-  return (
-    "reply" in maybeReply && typeof maybeReply.reply?.parent?.uri === "string"
-  );
-}
+import { useFeed as useFeedContext } from "@/components/context/feed-provider";
 
 export function Feed() {
   const feedContainerRef = useRef<HTMLDivElement>(null);
-  const { feedType } = useFeed();
+  const { feedType } = useFeedContext();
   const { agent, isAuthenticated } = useAuth();
 
-  const [pages, setPages] = useState<Map<number, PageData>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-
-  // Initialize a ref to store seen URIs
-  const seenUrisRef = useRef<Set<string>>(new Set());
-
-  const getTopLevelPost = useCallback(
-    async (
-      post: AppBskyFeedDefs.FeedViewPost,
-    ): Promise<AppBskyFeedDefs.FeedViewPost | null> => {
-      if (!agent) return null;
-
-      try {
-        let currentPost = post;
-        let record = currentPost.post.record as AppBskyFeedPost.Record;
-
-        while (isReplyRecord(record) && record.reply?.parent?.uri) {
-          const response = await agent.api.app.bsky.feed.getPosts({
-            uris: [record.reply.parent.uri],
-          });
-
-          if (!response.success || response.data.posts.length === 0) {
-            return null;
-          }
-
-          const parentPost: AppBskyFeedDefs.FeedViewPost = {
-            post: response.data.posts[0],
-            reason: post.reason,
-          };
-          const parentRecord = parentPost.post.record as AppBskyFeedPost.Record;
-
-          if (!isReplyRecord(parentRecord)) {
-            return parentPost;
-          }
-
-          currentPost = parentPost;
-          record = parentRecord;
-        }
-
-        return currentPost;
-      } catch (err) {
-        console.error("Failed to fetch top-level post:", err);
-        return null;
-      }
-    },
-    [agent],
-  );
-
-  const loadPage = useCallback(
-    async (pageNumber: number) => {
-      if (!agent) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      let pageAlreadyExists = false;
-      let prevCursor: string | undefined = undefined;
-      const additionalPostsNeeded = POSTS_PER_PAGE;
-
-      setPages((oldMap) => {
-        if (oldMap.has(pageNumber)) {
-          pageAlreadyExists = true;
-        }
-        if (oldMap.has(pageNumber - 1)) {
-          prevCursor = oldMap.get(pageNumber - 1)?.cursor;
-        }
-        return oldMap;
-      });
-
-      if (pageAlreadyExists) {
-        setCurrentPage(pageNumber);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const accumulatedPosts: AppBskyFeedDefs.FeedViewPost[] = [];
-        let currentCursor: string | undefined = prevCursor;
-        let response;
-
-        while (accumulatedPosts.length < additionalPostsNeeded) {
-          if (feedType === "following") {
-            response = await agent.getTimeline({
-              limit: POSTS_PER_PAGE * 2,
-              cursor: currentCursor,
-            });
-          } else {
-            response = await agent.app.bsky.feed.getFeed({
-              feed: "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot",
-              limit: POSTS_PER_PAGE * 2,
-              cursor: currentCursor,
-            });
-          }
-
-          if (!response.success) {
-            throw new Error("Failed to load feed");
-          }
-
-          if (!response.data.cursor) {
-            break;
-          }
-
-          const processedPosts = await Promise.all(
-            response.data.feed.map(
-              async (item: AppBskyFeedDefs.FeedViewPost) => {
-                const rec = item.post.record as AppBskyFeedPost.Record;
-                if (isReplyRecord(rec)) {
-                  return await getTopLevelPost(item);
-                }
-                return item;
-              },
-            ),
-          );
-
-          const uniquePosts = processedPosts
-            .filter(
-              (res): res is AppBskyFeedDefs.FeedViewPost =>
-                res !== null && res !== undefined,
-            )
-            // Filter out posts that have already been seen
-            .filter((p) => {
-              if (seenUrisRef.current.has(p.post.uri)) {
-                return false;
-              } else {
-                seenUrisRef.current.add(p.post.uri);
-                return true;
-              }
-            });
-
-          accumulatedPosts.push(...uniquePosts);
-          currentCursor = response.data.cursor;
-        }
-
-        // Slice to ensure only POSTS_PER_PAGE are added
-        const finalPosts = accumulatedPosts.slice(0, additionalPostsNeeded);
-
-        setPages((oldMap) => {
-          const newMap = new Map(oldMap);
-          newMap.set(pageNumber, {
-            posts: finalPosts,
-            cursor: currentCursor,
-          });
-          return newMap;
-        });
-        setCurrentPage(pageNumber);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load posts. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [agent, feedType, getTopLevelPost],
+  const { pages, isLoading, currentPage, error, loadPage, resetFeed } = useFeed(
+    agent,
+    feedType,
   );
 
   useLayoutEffect(() => {
@@ -203,14 +30,9 @@ export function Feed() {
 
   useEffect(() => {
     if (!agent) return;
-    (async () => {
-      // Reset seen URIs when feed type changes
-      seenUrisRef.current.clear();
-      setPages(new Map());
-      setCurrentPage(1);
-      await loadPage(1);
-    })();
-  }, [agent, feedType, loadPage]);
+    resetFeed();
+    loadPage(1);
+  }, [agent, feedType, loadPage, resetFeed]);
 
   const currentPageData = pages.get(currentPage);
 

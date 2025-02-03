@@ -1,78 +1,30 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { PostVotes } from "@/components/feed/post-card/post-votes";
 import { PostContent } from "@/components/feed/post-card/post-content";
 import { PostMeta } from "@/components/feed/post-card/post-meta";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/context/auth-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/typescript";
 import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { useCommentState } from "@/hooks/use-comment-state";
+import { getPostUrl } from "@/lib/post";
 
 interface ThreadMainPostProps {
   post: AppBskyFeedDefs.FeedViewPost;
 }
 
 export function ThreadMainPost({ post }: ThreadMainPostProps) {
-  const { agent } = useAuth();
-  const [isReposted, setIsReposted] = useState(
-    post.post.viewer?.repost !== undefined,
-  );
-  const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
-  const [repostUri, setRepostUri] = useState<string | undefined>(
-    post.post.viewer?.repost,
-  );
-  const [commentState, setCommentState] = useState({
-    isVisible: false,
-    count: post.post.replyCount || 0,
-    hasCommented: false,
-    isPosted: false,
-  });
-
-  const handleRepost = async () => {
-    if (!agent) return;
-    try {
-      if (!isReposted) {
-        const response = await agent.repost(post.post.uri, post.post.cid);
-        setRepostUri(response.uri);
-        setIsReposted(true);
-        setRepostCount((prev) => prev + 1);
-      } else if (repostUri) {
-        await agent.deleteRepost(repostUri);
-        setRepostUri(undefined);
-        setIsReposted(false);
-        setRepostCount((prev) => prev - 1);
-      }
-    } catch (error) {
-      console.error("Failed to repost/unrepost:", error);
-    }
-  };
-
-  const getPostUrl = () => {
-    const handle = post.post.author.handle;
-    const rkey = post.post.uri.split("/").pop();
-    return `https://bsky.app/profile/${handle}/post/${rkey}`;
-  };
-
-  const toggleCommentBox = () => {
-    setCommentState((prev) => ({
-      ...prev,
-      isVisible: !prev.isVisible,
-      isPosted: prev.isVisible ? false : prev.isPosted, // Reset posted state when opening
-    }));
-  };
-
-  const handleCommentPost = () => {
-    setCommentState((prev) => ({
-      ...prev,
-      count: prev.count + 1,
-      hasCommented: true,
-      isPosted: true,
-      isVisible: false,
-    }));
-  };
+  const { isReposted, repostCount, handleRepost } = usePostInteractions(post);
+  const {
+    isVisible: isCommentBoxVisible,
+    count: commentCount,
+    hasCommented,
+    isPosted: commentPosted,
+    toggleCommentBox,
+    handleCommentPost,
+    setIsVisible,
+  } = useCommentState(post);
 
   return (
     <Card className="bg-zinc-800 border-zinc-700">
@@ -87,13 +39,12 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
               size="sm"
               className={cn(
                 "p-0 text-sm hover:text-zinc-300 hover:underline",
-                (commentState.hasCommented || commentState.isPosted) &&
+                (hasCommented || commentPosted) &&
                   "text-blue-500 hover:text-blue-400",
               )}
               onClick={toggleCommentBox}
             >
-              {commentState.count}{" "}
-              {commentState.count === 1 ? "comment" : "comments"}
+              {commentCount} {commentCount === 1 ? "comment" : "comments"}
             </Button>
             <Button
               variant="ghost"
@@ -110,24 +61,19 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
               variant="ghost"
               size="sm"
               className="p-0 text-sm hover:text-zinc-300 hover:underline"
-              onClick={() => window.open(getPostUrl(), "_blank")}
+              onClick={() => window.open(getPostUrl(post), "_blank")}
             >
               source
             </Button>
           </div>
 
-          {commentState.isVisible && (
+          {isCommentBoxVisible && (
             <PostCommentBox
               post={post}
-              hasCommented={commentState.hasCommented}
-              commentPosted={commentState.isPosted}
+              hasCommented={hasCommented}
+              commentPosted={commentPosted}
               onCommentPost={handleCommentPost}
-              onCancel={() =>
-                setCommentState((prev) => ({
-                  ...prev,
-                  isVisible: false,
-                }))
-              }
+              onCancel={() => setIsVisible(false)}
             />
           )}
         </div>

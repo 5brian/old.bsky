@@ -1,15 +1,14 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { PostVotes } from "@/components/feed/post-card/post-votes";
 import { PostContent } from "@/components/feed/post-card/post-content";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNowStrict } from "date-fns";
-import { useAuth } from "@/components/context/auth-provider";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/typescript";
 import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { useCommentState } from "@/hooks/use-comment-state";
+import { getPostUrl, getProfileUrl } from "@/lib/post";
 
 interface ThreadReplyPostProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -26,63 +25,16 @@ export function ThreadReplyPost({
   isExpanded,
   onExpand,
 }: ThreadReplyPostProps) {
-  const { agent } = useAuth();
-  const [isReposted, setIsReposted] = useState(
-    post.post.viewer?.repost !== undefined,
-  );
-  const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
-  const [repostUri, setRepostUri] = useState<string | undefined>(
-    post.post.viewer?.repost,
-  );
-  const [commentState, setCommentState] = useState({
-    isVisible: false,
-    count: post.post.replyCount || 0,
-    hasCommented: false,
-    isPosted: false,
-  });
-
-  const handleRepost = async () => {
-    if (!agent) return;
-    try {
-      if (!isReposted) {
-        const response = await agent.repost(post.post.uri, post.post.cid);
-        setRepostUri(response.uri);
-        setIsReposted(true);
-        setRepostCount((prev) => prev + 1);
-      } else if (repostUri) {
-        await agent.deleteRepost(repostUri);
-        setRepostUri(undefined);
-        setIsReposted(false);
-        setRepostCount((prev) => prev - 1);
-      }
-    } catch (error) {
-      console.error("Failed to repost/unrepost:", error);
-    }
-  };
-
-  const getPostUrl = () => {
-    const handle = post.post.author.handle;
-    const rkey = post.post.uri.split("/").pop();
-    return `https://bsky.app/profile/${handle}/post/${rkey}`;
-  };
-
-  const toggleCommentBox = () => {
-    setCommentState((prev) => ({
-      ...prev,
-      isVisible: !prev.isVisible,
-      isPosted: prev.isVisible ? false : prev.isPosted,
-    }));
-  };
-
-  const handleCommentPost = () => {
-    setCommentState((prev) => ({
-      ...prev,
-      count: prev.count + 1,
-      hasCommented: true,
-      isPosted: true,
-      isVisible: false,
-    }));
-  };
+  const { isReposted, repostCount, handleRepost } = usePostInteractions(post);
+  const {
+    isVisible: isCommentBoxVisible,
+    count: commentCount,
+    hasCommented,
+    isPosted: commentPosted,
+    toggleCommentBox,
+    handleCommentPost,
+    setIsVisible,
+  } = useCommentState(post);
 
   return (
     <Card
@@ -108,10 +60,7 @@ export function ThreadReplyPost({
               variant="ghost"
               className="p-0 h-auto text-xs text-zinc-100 hover:text-zinc-300 hover:underline"
               onClick={() =>
-                window.open(
-                  `https://bsky.app/profile/${post.post.author.handle}`,
-                  "_blank",
-                )
+                window.open(getProfileUrl(post.post.author.handle), "_blank")
               }
             >
               {post.post.author.handle}
@@ -129,13 +78,12 @@ export function ThreadReplyPost({
               size="sm"
               className={cn(
                 "p-0 text-xs hover:text-zinc-300 hover:underline",
-                (commentState.hasCommented || commentState.isPosted) &&
+                (hasCommented || commentPosted) &&
                   "text-blue-500 hover:text-blue-400",
               )}
               onClick={toggleCommentBox}
             >
-              {commentState.count}{" "}
-              {commentState.count === 1 ? "comment" : "comments"}
+              {commentCount} {commentCount === 1 ? "comment" : "comments"}
             </Button>
             <Button
               variant="ghost"
@@ -152,24 +100,19 @@ export function ThreadReplyPost({
               variant="ghost"
               size="sm"
               className="p-0 text-xs hover:text-zinc-300 hover:underline"
-              onClick={() => window.open(getPostUrl(), "_blank")}
+              onClick={() => window.open(getPostUrl(post), "_blank")}
             >
               source
             </Button>
           </div>
 
-          {commentState.isVisible && (
+          {isCommentBoxVisible && (
             <PostCommentBox
               post={post}
-              hasCommented={commentState.hasCommented}
-              commentPosted={commentState.isPosted}
+              hasCommented={hasCommented}
+              commentPosted={commentPosted}
               onCommentPost={handleCommentPost}
-              onCancel={() =>
-                setCommentState((prev) => ({
-                  ...prev,
-                  isVisible: false,
-                }))
-              }
+              onCancel={() => setIsVisible(false)}
             />
           )}
         </div>

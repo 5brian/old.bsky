@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useAuth } from "@/components/context/auth-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/typescript";
 import { RichText } from "@atproto/api";
 
 interface PostCommentBoxProps {

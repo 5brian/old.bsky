@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 
-type FeedType = "following" | "discovery";
+export type FeedType = "following" | "discovery";
 
 interface FeedContextType {
   feedType: FeedType;

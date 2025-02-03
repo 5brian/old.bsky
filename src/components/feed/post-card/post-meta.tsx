@@ -1,15 +1,13 @@
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNowStrict } from "date-fns";
+import { getProfileUrl } from "@/lib/post";
 
 interface PostMetaProps {
   post: AppBskyFeedDefs.FeedViewPost;
 }
 
 export function PostMeta({ post }: PostMetaProps) {
-  const getProfileUrl = (handle: string) =>
-    `https://bsky.app/profile/${handle}`;
-
   const getEmbeddedAuthor = () => {
     if (!post.post.embed) return null;
 

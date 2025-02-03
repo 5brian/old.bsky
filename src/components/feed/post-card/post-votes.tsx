@@ -1,9 +1,8 @@
-import { useState } from "react";
+import type { AppBskyFeedDefs } from "@atproto/api";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import type { AppBskyFeedDefs } from "@atproto/api";
-import { useAuth } from "@/components/context/auth-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/typescript";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
 
 interface PostVotesProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -11,30 +10,7 @@ interface PostVotesProps {
 }
 
 export function PostVotes({ post, compact }: PostVotesProps) {
-  const { agent } = useAuth();
-  const viewer = post.post.viewer;
-  const [isLiked, setIsLiked] = useState(viewer?.like !== undefined);
-  const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
-  const [likeUri, setLikeUri] = useState<string | undefined>(viewer?.like);
-
-  const handleLike = async () => {
-    if (!agent) return;
-    try {
-      if (!isLiked) {
-        const response = await agent.like(post.post.uri, post.post.cid);
-        setLikeUri(response.uri);
-        setIsLiked(true);
-        setLikeCount((prev) => prev + 1);
-      } else if (likeUri) {
-        await agent.deleteLike(likeUri);
-        setLikeUri(undefined);
-        setIsLiked(false);
-        setLikeCount((prev) => prev - 1);
-      }
-    } catch (error) {
-      console.error("Failed to like/unlike:", error);
-    }
-  };
+  const { isLiked, likeCount, handleLike } = usePostInteractions(post);
 
   return (
     <div
@@ -46,7 +22,7 @@ export function PostVotes({ post, compact }: PostVotesProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`p-0 ${isLiked ? "text-orange-500" : ""}`}
+        className={cn("p-0", isLiked && "text-orange-500")}
         onClick={handleLike}
       >
         <ArrowUp className="h-4 w-4" />

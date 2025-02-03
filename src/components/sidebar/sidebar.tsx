@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function Sidebar() {
-  const { agent, isAuthenticated } = useAuth();
+  const { agent, isAuthenticated, createPost } = useAuth();
   const [isPosting, setIsPosting] = useState(false);
   const [postText, setPostText] = useState("");
 
@@ -24,9 +24,7 @@ export function Sidebar() {
 
     setIsPosting(true);
     try {
-      await agent.post({
-        text: postText,
-      });
+      await createPost(postText);
       setPostText("");
     } catch (error) {
       console.error("Failed to create post:", error);
