@@ -152,7 +152,7 @@ export function Header() {
                     }
                   >
                     <Code className="mr-2 h-4 w-4" />
-                    Code
+                    Source
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>
@@ -236,7 +236,7 @@ export function Header() {
                     }
                   >
                     <Code className="mr-2 h-4 w-4" />
-                    Code
+                    Source
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() =>
