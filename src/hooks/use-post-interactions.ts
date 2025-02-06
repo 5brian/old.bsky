@@ -1,65 +1,97 @@
-import { useState, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAuth } from "@/components/context/auth-provider";
+import { usePostInteractions as usePostInteractionsContext } from "@/components/context/post-interactions-provider";
 import type { AppBskyFeedDefs } from "@atproto/api";
 
 export function usePostInteractions(post: AppBskyFeedDefs.FeedViewPost) {
   const { agent } = useAuth();
-  const viewer = post.post.viewer;
+  const { getInteraction, updateInteraction } = usePostInteractionsContext();
 
-  const [isLiked, setIsLiked] = useState(!!viewer?.like);
-  const [likeCount, setLikeCount] = useState(post.post.likeCount || 0);
-  const [likeUri, setLikeUri] = useState<string | undefined>(viewer?.like);
+  const interaction = getInteraction(post.post.uri);
 
-  const [isReposted, setIsReposted] = useState(!!viewer?.repost);
-  const [repostCount, setRepostCount] = useState(post.post.repostCount || 0);
-  const [repostUri, setRepostUri] = useState<string | undefined>(
-    viewer?.repost,
-  );
+  useEffect(() => {
+    if (!interaction.isInitialized) {
+      const viewer = post.post.viewer;
+      updateInteraction(post.post.uri, {
+        isLiked: !!viewer?.like,
+        likeCount: post.post.likeCount || 0,
+        likeUri: viewer?.like,
+        isReposted: !!viewer?.repost,
+        repostCount: post.post.repostCount || 0,
+        repostUri: viewer?.repost,
+        commentCount: post.post.replyCount || 0,
+        hasCommented: false,
+        isInitialized: true,
+      });
+    }
+  }, [
+    interaction.isInitialized,
+    post.post.viewer,
+    post.post.likeCount,
+    post.post.repostCount,
+    post.post.replyCount,
+    post.post.uri,
+    updateInteraction,
+  ]);
 
   const handleLike = useCallback(async () => {
     if (!agent) return;
     try {
-      if (!isLiked) {
+      if (!interaction.isLiked) {
         const response = await agent.like(post.post.uri, post.post.cid);
-        setLikeUri(response.uri);
-        setIsLiked(true);
-        setLikeCount((prev) => prev + 1);
-      } else if (likeUri) {
-        await agent.deleteLike(likeUri);
-        setLikeUri(undefined);
-        setIsLiked(false);
-        setLikeCount((prev) => prev - 1);
+        updateInteraction(post.post.uri, {
+          isLiked: true,
+          likeCount: interaction.likeCount + 1,
+          likeUri: response.uri,
+          isInitialized: true,
+        });
+      } else if (interaction.likeUri) {
+        await agent.deleteLike(interaction.likeUri);
+        updateInteraction(post.post.uri, {
+          isLiked: false,
+          likeCount: interaction.likeCount - 1,
+          likeUri: undefined,
+          isInitialized: true,
+        });
       }
     } catch (error) {
       console.error("Failed to like/unlike:", error);
     }
-  }, [agent, isLiked, likeUri, post.post.cid, post.post.uri]);
+  }, [agent, interaction, post.post.cid, post.post.uri, updateInteraction]);
 
   const handleRepost = useCallback(async () => {
     if (!agent) return;
     try {
-      if (!isReposted) {
+      if (!interaction.isReposted) {
         const response = await agent.repost(post.post.uri, post.post.cid);
-        setRepostUri(response.uri);
-        setIsReposted(true);
-        setRepostCount((prev) => prev + 1);
-      } else if (repostUri) {
-        await agent.deleteRepost(repostUri);
-        setRepostUri(undefined);
-        setIsReposted(false);
-        setRepostCount((prev) => prev - 1);
+        updateInteraction(post.post.uri, {
+          isReposted: true,
+          repostCount: interaction.repostCount + 1,
+          repostUri: response.uri,
+          isInitialized: true,
+        });
+      } else if (interaction.repostUri) {
+        await agent.deleteRepost(interaction.repostUri);
+        updateInteraction(post.post.uri, {
+          isReposted: false,
+          repostCount: interaction.repostCount - 1,
+          repostUri: undefined,
+          isInitialized: true,
+        });
       }
     } catch (error) {
       console.error("Failed to repost/unrepost:", error);
     }
-  }, [agent, isReposted, repostUri, post.post.cid, post.post.uri]);
+  }, [agent, interaction, post.post.cid, post.post.uri, updateInteraction]);
 
   return {
-    isLiked,
-    likeCount,
+    isLiked: interaction.isLiked,
+    likeCount: interaction.likeCount,
     handleLike,
-    isReposted,
-    repostCount,
+    isReposted: interaction.isReposted,
+    repostCount: interaction.repostCount,
     handleRepost,
+    commentCount: interaction.commentCount,
+    hasCommented: interaction.hasCommented,
   };
 }

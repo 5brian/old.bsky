@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/context/auth-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { FeedProvider } from "@/components/context/feed-provider";
 import { ThreadProvider } from "@/components/context/thread-provider";
+import { PostInteractionsProvider } from "@/components/context/post-interactions-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,8 +32,10 @@ export default function RootLayout({
         <AuthProvider>
           <FeedProvider>
             <ThreadProvider>
-              <Header />
-              <div className="flex">{children}</div>
+              <PostInteractionsProvider>
+                <Header />
+                <div className="flex">{children}</div>
+              </PostInteractionsProvider>
             </ThreadProvider>
           </FeedProvider>
         </AuthProvider>
