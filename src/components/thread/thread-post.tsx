@@ -20,7 +20,6 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
     isVisible: isCommentBoxVisible,
     count: commentCount,
     hasCommented,
-    isPosted: commentPosted,
     toggleCommentBox,
     handleCommentPost,
     setIsVisible,
@@ -39,8 +38,7 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
               size="sm"
               className={cn(
                 "p-0 text-sm hover:text-zinc-300 hover:underline",
-                (hasCommented || commentPosted) &&
-                  "text-blue-500 hover:text-blue-400",
+                hasCommented && "text-blue-500 hover:text-blue-400",
               )}
               onClick={toggleCommentBox}
             >
@@ -71,7 +69,6 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
             <PostCommentBox
               post={post}
               hasCommented={hasCommented}
-              commentPosted={commentPosted}
               onCommentPost={handleCommentPost}
               onCancel={() => setIsVisible(false)}
             />

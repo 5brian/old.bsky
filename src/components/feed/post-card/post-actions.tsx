@@ -9,7 +9,6 @@ interface PostActionsProps {
   post: AppBskyFeedDefs.FeedViewPost;
   commentCount: number;
   hasCommented: boolean;
-  commentPosted: boolean;
   onCommentClick: () => void;
 }
 
@@ -17,7 +16,6 @@ export function PostActions({
   post,
   commentCount,
   hasCommented,
-  commentPosted,
   onCommentClick,
 }: PostActionsProps) {
   const { setActiveThread, setThreadVisible } = useThread();
@@ -35,8 +33,7 @@ export function PostActions({
         size="sm"
         className={cn(
           "p-0 text-sm hover:text-zinc-300 hover:underline",
-          (hasCommented || commentPosted) &&
-            "text-blue-500 hover:text-blue-400",
+          hasCommented && "text-blue-500 hover:text-blue-400",
         )}
         onClick={onCommentClick}
       >

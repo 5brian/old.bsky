@@ -9,7 +9,6 @@ import { RichText } from "@atproto/api";
 interface PostCommentBoxProps {
   post: AppBskyFeedDefs.FeedViewPost;
   hasCommented: boolean;
-  commentPosted: boolean;
   onCommentPost: () => void;
   onCancel: () => void;
 }
@@ -17,7 +16,6 @@ interface PostCommentBoxProps {
 export function PostCommentBox({
   post,
   hasCommented,
-  commentPosted,
   onCommentPost,
   onCancel,
 }: PostCommentBoxProps) {
@@ -65,7 +63,7 @@ export function PostCommentBox({
         onChange={(e) => setCommentText(e.target.value)}
         className={cn(
           "min-h-[80px] bg-zinc-700 border-zinc-600",
-          (hasCommented || commentPosted) && "border-blue-500",
+          hasCommented && "border-blue-500",
         )}
       />
       <div className="flex justify-end space-x-2">
@@ -85,7 +83,7 @@ export function PostCommentBox({
           disabled={isCommenting || !commentText.trim()}
           className={cn(
             "bg-primary",
-            (hasCommented || commentPosted) && "bg-blue-500 hover:bg-blue-600",
+            hasCommented && "bg-blue-500 hover:bg-blue-600",
           )}
         >
           {isCommenting ? "Posting..." : "Comment"}

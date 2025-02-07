@@ -16,7 +16,6 @@ export function PostCard({ post }: PostCardProps) {
     isVisible: isCommentBoxVisible,
     count: commentCount,
     hasCommented,
-    isPosted: commentPosted,
     toggleCommentBox,
     handleCommentPost,
     setIsVisible,
@@ -33,7 +32,6 @@ export function PostCard({ post }: PostCardProps) {
             post={post}
             commentCount={commentCount}
             hasCommented={hasCommented}
-            commentPosted={commentPosted}
             onCommentClick={toggleCommentBox}
           />
 
@@ -41,7 +39,6 @@ export function PostCard({ post }: PostCardProps) {
             <PostCommentBox
               post={post}
               hasCommented={hasCommented}
-              commentPosted={commentPosted}
               onCommentPost={handleCommentPost}
               onCancel={() => setIsVisible(false)}
             />
