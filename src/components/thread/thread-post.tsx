@@ -3,6 +3,7 @@ import type { AppBskyFeedDefs } from "@atproto/api";
 import { PostVotes } from "@/components/feed/post-card/post-votes";
 import { PostContent } from "@/components/feed/post-card/post-content";
 import { PostMeta } from "@/components/feed/post-card/post-meta";
+import { PostImages } from "@/components/feed/post-card/post-images";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/typescript";
 import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
@@ -31,6 +32,7 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
         <PostVotes post={post} />
         <div className="flex-1 p-4">
           <PostContent post={post} />
+          <PostImages post={post} />
           <PostMeta post={post} />
           <div className="flex space-x-4 text-zinc-400 text-sm mt-2">
             <Button

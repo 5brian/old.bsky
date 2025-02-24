@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { PostVotes } from "@/components/feed/post-card/post-votes";
 import { PostContent } from "@/components/feed/post-card/post-content";
+import { PostImages } from "@/components/feed/post-card/post-images";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNowStrict } from "date-fns";
 import { cn } from "@/lib/typescript";
@@ -71,6 +72,7 @@ export function ThreadReplyPost({
           </div>
 
           <PostContent post={post} />
+          <PostImages post={post} />
           <div className="flex space-x-4 text-zinc-400 text-xs mt-2">
             <Button
               variant="ghost"
