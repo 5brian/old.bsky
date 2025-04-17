@@ -10,6 +10,7 @@ import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
 import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useCommentState } from "@/hooks/use-comment-state";
 import { getPostUrl, getProfileUrl } from "@/lib/post";
+import { memo } from "react";
 
 interface ThreadReplyPostProps {
   post: AppBskyFeedDefs.FeedViewPost;
@@ -19,7 +20,7 @@ interface ThreadReplyPostProps {
   onExpand?: () => void;
 }
 
-export function ThreadReplyPost({
+export const ThreadReplyPost = memo(function ThreadReplyPost({
   post,
   depth = 0,
   hasMoreReplies,
@@ -118,4 +119,4 @@ export function ThreadReplyPost({
       </div>
     </Card>
   );
-}
+});

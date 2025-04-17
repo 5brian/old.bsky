@@ -84,6 +84,28 @@ export function useThread(agent: AtpAgent | null) {
     [],
   );
 
+  const fetchThreadReplies = useCallback(
+    async (uri: string) => {
+      if (!agent) return null;
+      
+      try {
+        const response = await agent.getPostThread({ uri });
+        
+        if (response.success && isThreadViewPost(response.data.thread)) {
+          const replies = response.data.thread.replies;
+          if (Array.isArray(replies) && replies.every(isThreadViewPost)) {
+            return sortRepliesByLikes(replies);
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error(`Failed to fetch thread replies for ${uri}:`, error);
+        return null;
+      }
+    },
+    [agent],
+  );
+
   const autoExpandReplies = useCallback(
     async (replies: ThreadPost[]) => {
       if (!agent) return;
@@ -91,63 +113,44 @@ export function useThread(agent: AtpAgent | null) {
       for (const reply of replies) {
         if (reply.replies?.length) {
           setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
-
-          try {
-            const response = await agent.getPostThread({
-              uri: reply.post.uri,
-            });
-
-            if (response.success && isThreadViewPost(response.data.thread)) {
-              const newReplies = response.data.thread.replies;
-              if (
-                Array.isArray(newReplies) &&
-                newReplies.every(isThreadViewPost)
-              ) {
-                setReplyPosts((prevPosts) =>
-                  updateRepliesInThread(
-                    prevPosts,
-                    reply.post.uri,
-                    sortRepliesByLikes(newReplies),
-                  ),
-                );
-
-                await autoExpandReplies(newReplies);
-              }
-            }
-          } catch (error) {
-            console.error("Failed to auto-expand replies:", error);
+          
+          const newReplies = await fetchThreadReplies(reply.post.uri);
+          
+          if (newReplies) {
+            setReplyPosts((prevPosts) =>
+              updateRepliesInThread(
+                prevPosts,
+                reply.post.uri,
+                newReplies
+              ),
+            );
+            
+            setTimeout(() => {
+              autoExpandReplies(newReplies);
+            }, 0);
           }
         }
       }
     },
-    [agent, updateRepliesInThread],
+    [agent, updateRepliesInThread, fetchThreadReplies],
   );
 
   const handleExpandReplies = useCallback(
     async (postUri: string) => {
       if (!agent) return;
-
-      try {
-        const response = await agent.getPostThread({
-          uri: postUri,
-        });
-
-        if (response.success && isThreadViewPost(response.data.thread)) {
-          setExpandedPosts((prev) => new Set([...prev, postUri]));
-
-          const replies = response.data.thread.replies;
-          if (Array.isArray(replies) && replies.every(isThreadViewPost)) {
-            setReplyPosts((prevPosts) =>
-              updateRepliesInThread(prevPosts, postUri, replies),
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load more replies:", error);
+      
+      const newReplies = await fetchThreadReplies(postUri);
+      
+      if (newReplies) {
+        setExpandedPosts((prev) => new Set([...prev, postUri]));
+        setReplyPosts((prevPosts) =>
+          updateRepliesInThread(prevPosts, postUri, newReplies)
+        );
+      } else {
         setError("Failed to load replies");
       }
     },
-    [agent, updateRepliesInThread],
+    [agent, updateRepliesInThread, fetchThreadReplies],
   );
 
   const toggleReplies = useCallback((postUri: string) => {
@@ -174,11 +177,11 @@ export function useThread(agent: AtpAgent | null) {
         });
 
         if (response.success) {
-          const parents: AppBskyFeedDefs.FeedViewPost[] = [];
           const thread = response.data.thread;
 
           if (isThreadViewPost(thread)) {
             // Get parent posts
+            const parents: AppBskyFeedDefs.FeedViewPost[] = [];
             let currentParent = thread.parent;
             while (currentParent && isThreadViewPost(currentParent)) {
               parents.unshift(convertToFeedViewPost(currentParent.post));
@@ -224,7 +227,6 @@ export function useThread(agent: AtpAgent | null) {
     isLoading,
     error,
     currentPage,
-    updateRepliesInThread,
     handleExpandReplies,
     toggleReplies,
     loadThread,

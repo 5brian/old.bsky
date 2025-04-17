@@ -10,12 +10,13 @@ import { PostCommentBox } from "@/components/feed/post-card/post-comment-box";
 import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useCommentState } from "@/hooks/use-comment-state";
 import { getPostUrl } from "@/lib/post";
+import { memo } from "react";
 
 interface ThreadMainPostProps {
   post: AppBskyFeedDefs.FeedViewPost;
 }
 
-export function ThreadMainPost({ post }: ThreadMainPostProps) {
+export const ThreadMainPost = memo(function ThreadMainPost({ post }: ThreadMainPostProps) {
   const { isReposted, repostCount, handleRepost } = usePostInteractions(post);
   const {
     isVisible: isCommentBoxVisible,
@@ -79,4 +80,4 @@ export function ThreadMainPost({ post }: ThreadMainPostProps) {
       </div>
     </Card>
   );
-}
+});
