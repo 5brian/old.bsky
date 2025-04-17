@@ -16,7 +16,6 @@ interface ThreadViewRecord {
   replies?: ThreadPost[];
 }
 
-const MAX_VISIBLE_DEPTH = 2;
 const POSTS_PER_PAGE = 20;
 
 function isThreadViewPost(post: unknown): post is ThreadPost {
@@ -86,8 +85,8 @@ export function useThread(agent: AtpAgent | null) {
   );
 
   const autoExpandReplies = useCallback(
-    async (replies: ThreadPost[], currentDepth = 0) => {
-      if (!agent || currentDepth >= 2) return;
+    async (replies: ThreadPost[]) => {
+      if (!agent) return;
 
       for (const reply of replies) {
         if (reply.replies?.length) {
@@ -96,7 +95,6 @@ export function useThread(agent: AtpAgent | null) {
           try {
             const response = await agent.getPostThread({
               uri: reply.post.uri,
-              depth: MAX_VISIBLE_DEPTH,
             });
 
             if (response.success && isThreadViewPost(response.data.thread)) {
@@ -113,7 +111,7 @@ export function useThread(agent: AtpAgent | null) {
                   ),
                 );
 
-                await autoExpandReplies(newReplies, currentDepth + 1);
+                await autoExpandReplies(newReplies);
               }
             }
           } catch (error) {
@@ -132,7 +130,6 @@ export function useThread(agent: AtpAgent | null) {
       try {
         const response = await agent.getPostThread({
           uri: postUri,
-          depth: MAX_VISIBLE_DEPTH,
         });
 
         if (response.success && isThreadViewPost(response.data.thread)) {
@@ -174,7 +171,6 @@ export function useThread(agent: AtpAgent | null) {
       try {
         const response = await agent.getPostThread({
           uri: threadUri,
-          depth: MAX_VISIBLE_DEPTH,
         });
 
         if (response.success) {

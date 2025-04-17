@@ -36,7 +36,7 @@ export function Thread() {
   }, [activeThread, agent, loadThread]);
 
   const renderReplies = (replies?: typeof replyPosts) => {
-    if (!replies) return null;
+    if (!replies || replies.length === 0) return null;
 
     const paginatedReplies = replies.slice(0, currentPage * POSTS_PER_PAGE);
 
