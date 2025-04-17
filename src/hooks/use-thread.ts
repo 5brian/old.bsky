@@ -197,15 +197,19 @@ export function useThread(agent: AtpAgent | null) {
             setReplyPosts(processedReplies);
             setCollapsedPosts(new Set());
             setCurrentPage(1);
-
-            // Auto-expand replies up to two levels deep
-            await autoExpandReplies(processedReplies);
+            
+            // Mark thread as loaded
+            setIsLoading(false);
+            
+            // Auto-expand replies in the background
+            setTimeout(() => {
+              autoExpandReplies(processedReplies);
+            }, 0);
           }
         }
       } catch (error) {
         console.error("Failed to load thread:", error);
         setError("Failed to load thread");
-      } finally {
         setIsLoading(false);
       }
     },

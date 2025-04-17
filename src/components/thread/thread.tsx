@@ -102,11 +102,7 @@ export function Thread() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="text-center text-red-500">{error}</div>
           ) : (
             <>
@@ -114,7 +110,19 @@ export function Thread() {
                 <ThreadReplyPost key={post.post.uri} post={post} />
               ))}
               <ThreadMainPost post={activeThread} />
-              {renderReplies(replyPosts)}
+              {isLoading && parentPosts.length === 0 ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                renderReplies(replyPosts)
+              )}
+              {isLoading && parentPosts.length > 0 && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                  <span className="ml-2 text-zinc-500">Loading more replies...</span>
+                </div>
+              )}
             </>
           )}
         </div>
