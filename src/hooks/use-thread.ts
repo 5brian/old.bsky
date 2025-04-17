@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { AtpAgent } from "@atproto/api";
 import { sortRepliesByLikes } from "@/lib/post";
@@ -45,6 +45,8 @@ export function useThread(agent: AtpAgent | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(true);
+  const isExpandingReplies = useRef(false);
 
   const updateRepliesInThread = useCallback(
     (
@@ -107,29 +109,35 @@ export function useThread(agent: AtpAgent | null) {
   );
 
   const autoExpandReplies = useCallback(
-    async (replies: ThreadPost[]) => {
-      if (!agent) return;
-
-      for (const reply of replies) {
-        if (reply.replies?.length) {
+    async (initialReplies: ThreadPost[]) => {
+      if (!agent || isExpandingReplies.current || !isMounted.current) return;
+      
+      isExpandingReplies.current = true;
+      
+      try {
+        const replyQueue = [...initialReplies];
+        
+        while (replyQueue.length > 0 && isMounted.current) {
+          const reply = replyQueue.shift();
+          
+          if (!reply || !reply.replies?.length) continue;
+          
           setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
           
           const newReplies = await fetchThreadReplies(reply.post.uri);
           
-          if (newReplies) {
+          if (newReplies && isMounted.current) {
             setReplyPosts((prevPosts) =>
-              updateRepliesInThread(
-                prevPosts,
-                reply.post.uri,
-                newReplies
-              ),
+              updateRepliesInThread(prevPosts, reply.post.uri, newReplies)
             );
             
-            setTimeout(() => {
-              autoExpandReplies(newReplies);
-            }, 0);
+            replyQueue.push(...newReplies);
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
+      } finally {
+        isExpandingReplies.current = false;
       }
     },
     [agent, updateRepliesInThread, fetchThreadReplies],
@@ -141,12 +149,12 @@ export function useThread(agent: AtpAgent | null) {
       
       const newReplies = await fetchThreadReplies(postUri);
       
-      if (newReplies) {
+      if (newReplies && isMounted.current) {
         setExpandedPosts((prev) => new Set([...prev, postUri]));
         setReplyPosts((prevPosts) =>
           updateRepliesInThread(prevPosts, postUri, newReplies)
         );
-      } else {
+      } else if (isMounted.current) {
         setError("Failed to load replies");
       }
     },
@@ -176,11 +184,10 @@ export function useThread(agent: AtpAgent | null) {
           uri: threadUri,
         });
 
-        if (response.success) {
+        if (response.success && isMounted.current) {
           const thread = response.data.thread;
 
           if (isThreadViewPost(thread)) {
-            // Get parent posts
             const parents: AppBskyFeedDefs.FeedViewPost[] = [];
             let currentParent = thread.parent;
             while (currentParent && isThreadViewPost(currentParent)) {
@@ -188,35 +195,87 @@ export function useThread(agent: AtpAgent | null) {
               currentParent = currentParent.parent;
             }
 
-            // Process replies with depth
             const replies = thread.replies || [];
             const processedReplies = assignDepth(sortRepliesByLikes(replies));
 
             setParentPosts(parents);
             setReplyPosts(processedReplies);
             setCollapsedPosts(new Set());
+            setExpandedPosts(new Set());
             setCurrentPage(1);
             
-            // Mark thread as loaded
             setIsLoading(false);
             
-            // Auto-expand replies in the background
-            setTimeout(() => {
-              autoExpandReplies(processedReplies);
-            }, 0);
+            autoExpandReplies(processedReplies);
           }
         }
       } catch (error) {
         console.error("Failed to load thread:", error);
-        setError("Failed to load thread");
-        setIsLoading(false);
+        if (isMounted.current) {
+          setError("Failed to load thread");
+          setIsLoading(false);
+        }
       }
     },
     [agent, assignDepth, autoExpandReplies],
   );
 
-  const loadMoreReplies = useCallback(() => {
-    setCurrentPage((prev) => prev + 1);
+  const loadMoreReplies = useCallback(async () => {
+    if (isLoading || !agent) return;
+    
+    const localLoading = true;
+    
+    try {
+      const offset = currentPage * POSTS_PER_PAGE;
+      
+      const visibleReplies = replyPosts.slice(0, offset);
+      const lastVisibleReply = visibleReplies[visibleReplies.length - 1];
+      
+      if (lastVisibleReply) {
+        const moreReplies = await fetchThreadReplies(lastVisibleReply.post.uri);
+        
+        if (moreReplies && isMounted.current) {
+          setReplyPosts(prev => {
+            const newPosts = [...prev];
+            
+            const parentIndex = prev.findIndex(p => p.post.uri === lastVisibleReply.post.uri);
+            
+            if (parentIndex !== -1 && prev[parentIndex].replies) {
+              newPosts[parentIndex] = {
+                ...prev[parentIndex],
+                replies: [...(prev[parentIndex].replies || []), ...moreReplies]
+              };
+            } else if (parentIndex !== -1) {
+              newPosts[parentIndex] = {
+                ...prev[parentIndex],
+                replies: moreReplies
+              };
+            } else {
+              newPosts.push(...moreReplies);
+            }
+            
+            return newPosts;
+          });
+          
+          setCurrentPage(prev => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load more replies:", error);
+      if (isMounted.current) {
+        setError("Failed to load more replies");
+      }
+    } finally {
+      if (isMounted.current && localLoading) {
+        setIsLoading(false);
+      }
+    }
+  }, [agent, currentPage, fetchThreadReplies, isLoading, replyPosts]);
+
+  useCallback(() => {
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   return {
