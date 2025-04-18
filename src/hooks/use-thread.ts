@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { AppBskyFeedDefs } from "@atproto/api";
 import { AtpAgent } from "@atproto/api";
 import { sortRepliesByLikes } from "@/lib/post";
@@ -16,7 +16,6 @@ interface ThreadViewRecord {
   replies?: ThreadPost[];
 }
 
-const MAX_VISIBLE_DEPTH = 2;
 const POSTS_PER_PAGE = 20;
 
 function isThreadViewPost(post: unknown): post is ThreadPost {
@@ -46,6 +45,8 @@ export function useThread(agent: AtpAgent | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(true);
+  const isExpandingReplies = useRef(false);
 
   const updateRepliesInThread = useCallback(
     (
@@ -85,72 +86,79 @@ export function useThread(agent: AtpAgent | null) {
     [],
   );
 
-  const autoExpandReplies = useCallback(
-    async (replies: ThreadPost[], currentDepth = 0) => {
-      if (!agent || currentDepth >= 2) return;
-
-      for (const reply of replies) {
-        if (reply.replies?.length) {
-          setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
-
-          try {
-            const response = await agent.getPostThread({
-              uri: reply.post.uri,
-              depth: MAX_VISIBLE_DEPTH,
-            });
-
-            if (response.success && isThreadViewPost(response.data.thread)) {
-              const newReplies = response.data.thread.replies;
-              if (
-                Array.isArray(newReplies) &&
-                newReplies.every(isThreadViewPost)
-              ) {
-                setReplyPosts((prevPosts) =>
-                  updateRepliesInThread(
-                    prevPosts,
-                    reply.post.uri,
-                    sortRepliesByLikes(newReplies),
-                  ),
-                );
-
-                await autoExpandReplies(newReplies, currentDepth + 1);
-              }
-            }
-          } catch (error) {
-            console.error("Failed to auto-expand replies:", error);
+  const fetchThreadReplies = useCallback(
+    async (uri: string) => {
+      if (!agent) return null;
+      
+      try {
+        const response = await agent.getPostThread({ uri });
+        
+        if (response.success && isThreadViewPost(response.data.thread)) {
+          const replies = response.data.thread.replies;
+          if (Array.isArray(replies) && replies.every(isThreadViewPost)) {
+            return sortRepliesByLikes(replies);
           }
         }
+        return null;
+      } catch (error) {
+        console.error(`Failed to fetch thread replies for ${uri}:`, error);
+        return null;
       }
     },
-    [agent, updateRepliesInThread],
+    [agent],
+  );
+
+  const autoExpandReplies = useCallback(
+    async (initialReplies: ThreadPost[]) => {
+      if (!agent || isExpandingReplies.current || !isMounted.current) return;
+      
+      isExpandingReplies.current = true;
+      
+      try {
+        const replyQueue = [...initialReplies];
+        
+        while (replyQueue.length > 0 && isMounted.current) {
+          const reply = replyQueue.shift();
+          
+          if (!reply || !reply.replies?.length) continue;
+          
+          setExpandedPosts((prev) => new Set([...prev, reply.post.uri]));
+          
+          const newReplies = await fetchThreadReplies(reply.post.uri);
+          
+          if (newReplies && isMounted.current) {
+            setReplyPosts((prevPosts) =>
+              updateRepliesInThread(prevPosts, reply.post.uri, newReplies)
+            );
+            
+            replyQueue.push(...newReplies);
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        }
+      } finally {
+        isExpandingReplies.current = false;
+      }
+    },
+    [agent, updateRepliesInThread, fetchThreadReplies],
   );
 
   const handleExpandReplies = useCallback(
     async (postUri: string) => {
       if (!agent) return;
-
-      try {
-        const response = await agent.getPostThread({
-          uri: postUri,
-          depth: MAX_VISIBLE_DEPTH,
-        });
-
-        if (response.success && isThreadViewPost(response.data.thread)) {
-          setExpandedPosts((prev) => new Set([...prev, postUri]));
-
-          const replies = response.data.thread.replies;
-          if (Array.isArray(replies) && replies.every(isThreadViewPost)) {
-            setReplyPosts((prevPosts) =>
-              updateRepliesInThread(prevPosts, postUri, replies),
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load more replies:", error);
+      
+      const newReplies = await fetchThreadReplies(postUri);
+      
+      if (newReplies && isMounted.current) {
+        setExpandedPosts((prev) => new Set([...prev, postUri]));
+        setReplyPosts((prevPosts) =>
+          updateRepliesInThread(prevPosts, postUri, newReplies)
+        );
+      } else if (isMounted.current) {
         setError("Failed to load replies");
       }
     },
-    [agent, updateRepliesInThread],
+    [agent, updateRepliesInThread, fetchThreadReplies],
   );
 
   const toggleReplies = useCallback((postUri: string) => {
@@ -174,46 +182,100 @@ export function useThread(agent: AtpAgent | null) {
       try {
         const response = await agent.getPostThread({
           uri: threadUri,
-          depth: MAX_VISIBLE_DEPTH,
         });
 
-        if (response.success) {
-          const parents: AppBskyFeedDefs.FeedViewPost[] = [];
+        if (response.success && isMounted.current) {
           const thread = response.data.thread;
 
           if (isThreadViewPost(thread)) {
-            // Get parent posts
+            const parents: AppBskyFeedDefs.FeedViewPost[] = [];
             let currentParent = thread.parent;
             while (currentParent && isThreadViewPost(currentParent)) {
               parents.unshift(convertToFeedViewPost(currentParent.post));
               currentParent = currentParent.parent;
             }
 
-            // Process replies with depth
             const replies = thread.replies || [];
             const processedReplies = assignDepth(sortRepliesByLikes(replies));
 
             setParentPosts(parents);
             setReplyPosts(processedReplies);
             setCollapsedPosts(new Set());
+            setExpandedPosts(new Set());
             setCurrentPage(1);
-
-            // Auto-expand replies up to two levels deep
-            await autoExpandReplies(processedReplies);
+            
+            setIsLoading(false);
+            
+            autoExpandReplies(processedReplies);
           }
         }
       } catch (error) {
         console.error("Failed to load thread:", error);
-        setError("Failed to load thread");
-      } finally {
-        setIsLoading(false);
+        if (isMounted.current) {
+          setError("Failed to load thread");
+          setIsLoading(false);
+        }
       }
     },
     [agent, assignDepth, autoExpandReplies],
   );
 
-  const loadMoreReplies = useCallback(() => {
-    setCurrentPage((prev) => prev + 1);
+  const loadMoreReplies = useCallback(async () => {
+    if (isLoading || !agent) return;
+    
+    const localLoading = true;
+    
+    try {
+      const offset = currentPage * POSTS_PER_PAGE;
+      
+      const visibleReplies = replyPosts.slice(0, offset);
+      const lastVisibleReply = visibleReplies[visibleReplies.length - 1];
+      
+      if (lastVisibleReply) {
+        const moreReplies = await fetchThreadReplies(lastVisibleReply.post.uri);
+        
+        if (moreReplies && isMounted.current) {
+          setReplyPosts(prev => {
+            const newPosts = [...prev];
+            
+            const parentIndex = prev.findIndex(p => p.post.uri === lastVisibleReply.post.uri);
+            
+            if (parentIndex !== -1 && prev[parentIndex].replies) {
+              newPosts[parentIndex] = {
+                ...prev[parentIndex],
+                replies: [...(prev[parentIndex].replies || []), ...moreReplies]
+              };
+            } else if (parentIndex !== -1) {
+              newPosts[parentIndex] = {
+                ...prev[parentIndex],
+                replies: moreReplies
+              };
+            } else {
+              newPosts.push(...moreReplies);
+            }
+            
+            return newPosts;
+          });
+          
+          setCurrentPage(prev => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load more replies:", error);
+      if (isMounted.current) {
+        setError("Failed to load more replies");
+      }
+    } finally {
+      if (isMounted.current && localLoading) {
+        setIsLoading(false);
+      }
+    }
+  }, [agent, currentPage, fetchThreadReplies, isLoading, replyPosts]);
+
+  useCallback(() => {
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   return {
@@ -224,7 +286,6 @@ export function useThread(agent: AtpAgent | null) {
     isLoading,
     error,
     currentPage,
-    updateRepliesInThread,
     handleExpandReplies,
     toggleReplies,
     loadThread,

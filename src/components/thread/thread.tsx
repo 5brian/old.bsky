@@ -7,7 +7,15 @@ import { X, Loader2 } from "lucide-react";
 import { ThreadMainPost } from "./thread-post";
 import { ThreadReplyPost } from "./thread-reply";
 import { useThread } from "@/hooks/use-thread";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
+import type { AppBskyFeedDefs } from "@atproto/api";
+
+interface ThreadPost extends AppBskyFeedDefs.ThreadViewPost {
+  $type: string;
+  replies?: ThreadPost[];
+  depth?: number;
+  post: AppBskyFeedDefs.PostView;
+}
 
 export function Thread() {
   const { activeThread, isThreadVisible, setThreadVisible, setActiveThread } =
@@ -35,8 +43,18 @@ export function Thread() {
     }
   }, [activeThread, agent, loadThread]);
 
-  const renderReplies = (replies?: typeof replyPosts) => {
-    if (!replies) return null;
+  const handleReplyExpansion = useCallback((reply: ThreadPost) => {
+    if (collapsedPosts.has(reply.post.uri)) {
+      toggleReplies(reply.post.uri);
+    } else if (!expandedPosts.has(reply.post.uri)) {
+      handleExpandReplies(reply.post.uri);
+    } else {
+      toggleReplies(reply.post.uri);
+    }
+  }, [collapsedPosts, expandedPosts, handleExpandReplies, toggleReplies]);
+
+  const renderReplies = useCallback((replies?: ThreadPost[]) => {
+    if (!replies || replies.length === 0) return null;
 
     const paginatedReplies = replies.slice(0, currentPage * POSTS_PER_PAGE);
 
@@ -52,15 +70,7 @@ export function Thread() {
               depth={reply.depth}
               hasMoreReplies={!!reply.replies?.length}
               isExpanded={!collapsedPosts.has(reply.post.uri)}
-              onExpand={() => {
-                if (collapsedPosts.has(reply.post.uri)) {
-                  toggleReplies(reply.post.uri);
-                } else if (!expandedPosts.has(reply.post.uri)) {
-                  handleExpandReplies(reply.post.uri);
-                } else {
-                  toggleReplies(reply.post.uri);
-                }
-              }}
+              onExpand={() => handleReplyExpansion(reply)}
             />
             {!collapsedPosts.has(reply.post.uri) &&
               renderReplies(reply.replies)}
@@ -78,7 +88,7 @@ export function Thread() {
         )}
       </div>
     );
-  };
+  }, [currentPage, POSTS_PER_PAGE, collapsedPosts, handleReplyExpansion, loadMoreReplies]);
 
   if (!isThreadVisible || !activeThread) return null;
 
@@ -102,11 +112,7 @@ export function Thread() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="text-center text-red-500">{error}</div>
           ) : (
             <>
@@ -114,7 +120,19 @@ export function Thread() {
                 <ThreadReplyPost key={post.post.uri} post={post} />
               ))}
               <ThreadMainPost post={activeThread} />
-              {renderReplies(replyPosts)}
+              {isLoading && parentPosts.length === 0 ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                renderReplies(replyPosts)
+              )}
+              {isLoading && parentPosts.length > 0 && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                  <span className="ml-2 text-zinc-500">Loading more replies...</span>
+                </div>
+              )}
             </>
           )}
         </div>
